@@ -1,28 +1,30 @@
-# Central Operacional Pomar — v0.4
+# Central Operacional Pomar — v0.5
 
 Sistema interno do Grupo Pomar para um único proprietário. Reúne direção diária, relacionamento, execução, comercial e financeiro. Interface em português, com layout adaptável e estrutura preparada para Supabase.
 
-**Estado desta entrega:** implementação de código e banco com 39 testes automatizados locais. Inclui cobrança, captura de ideias e reforço de sessão. O Supabase real será configurado manualmente. Hospedagem e domínio ainda não estão conectados. A validação interativa completa no navegador permanece pendente; veja [o relatório de validação](docs/VALIDACAO.md).
+**Estado desta entrega:** checkout Pix com identidade do Grupo Pomar, prévia visual e integração com Mercado Pago Payments API. Os 45 testes automatizados locais, build, TypeScript e verificações HTTP passaram. O recebimento real exige a migração incremental, credenciais e homologação da conta Mercado Pago; segue desativado por padrão. Supabase e credenciais são configurados manualmente. Veja [o relatório de validação](docs/VALIDACAO.md) e [o roteiro do checkout](docs/CHECKOUT_PIX.md).
 
 ## O que já foi implementado
 
-| Área         | Recursos                                                                                                                                              |
-| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Visão geral  | Foco diário limitado, projetos prioritários, indicadores e pontos de atenção derivados dos registros                                                  |
-| Clientes     | Cadastro, edição, busca, arquivamento e projetos relacionados                                                                                         |
-| Projetos     | Áreas, contratante, cliente, prioridade, prazo, próxima ação, dependências e atualizações completas                                                   |
-| Tarefas      | Estados, prioridade, prazo, reserva no foco do dia, conclusão e reabertura                                                                            |
-| Comercial    | Etapas, previsão de contato, valor estimado e conversão em projeto sem criar receita automaticamente                                                  |
-| Cobranças    | Faixas de atraso, entrada/entrega condicionadas ao aceite e pagamento, promessas, histórico de contatos e rascunhos revisáveis                        |
-| Ideias       | Captura rápida, classificação, prioridade e conversão única em tarefa                                                                                 |
-| Pagamentos   | Adaptador Mercado Pago Checkout Pro, validade real, assinatura de webhook, consulta autenticada e conciliação idempotente; desativado até homologação |
-| Financeiro   | Contratos, parcelas mensais, recebimentos parciais, conciliação, estornos, cancelamento e despesas                                                    |
-| Alertas      | Prazos, cobranças, esperas e acompanhamento comercial; origem acessível pelo alerta                                                                   |
-| Histórico    | Eventos gravados pelo banco na nuvem e pelo domínio no desenvolvimento local                                                                          |
-| Preferências | Empresa, nome de exibição, áreas, foco diário, backup JSON e exportação financeira CSV                                                                |
-| Acesso       | Login do proprietário, TOTP, sessão limitada a 8h, inatividade de 15min no banco e MFA recente para gerar links e reconciliar pagamentos              |
+| Área         | Recursos                                                                                                                                               |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Visão geral  | Foco diário limitado, projetos prioritários, indicadores e pontos de atenção derivados dos registros                                                   |
+| Clientes     | Cadastro, edição, busca, arquivamento e projetos relacionados                                                                                          |
+| Projetos     | Áreas, contratante, cliente, prioridade, prazo, próxima ação, dependências e atualizações completas                                                    |
+| Tarefas      | Estados, prioridade, prazo, reserva no foco do dia, conclusão e reabertura                                                                             |
+| Comercial    | Etapas, previsão de contato, valor estimado e conversão em projeto sem criar receita automaticamente                                                   |
+| Cobranças    | Faixas de atraso, entrada/entrega condicionadas ao aceite e pagamento, promessas, histórico de contatos e rascunhos revisáveis                         |
+| Ideias       | Captura rápida, classificação, prioridade e conversão única em tarefa                                                                                  |
+| Pagamentos   | Checkout Pix com identidade Pomar, link privado, QR Code, Copia e Cola, status e conciliação idempotente pelo Mercado Pago; desativado até homologação |
+| Financeiro   | Contratos, parcelas mensais, recebimentos parciais, conciliação, estornos, cancelamento e despesas                                                     |
+| Alertas      | Prazos, cobranças, esperas e acompanhamento comercial; origem acessível pelo alerta                                                                    |
+| Histórico    | Eventos gravados pelo banco na nuvem e pelo domínio no desenvolvimento local                                                                           |
+| Preferências | Empresa, nome de exibição, áreas, foco diário, backup JSON e exportação financeira CSV                                                                 |
+| Acesso       | Login do proprietário, TOTP, sessão limitada a 8h, inatividade de 15min no banco e MFA recente para gerar links e reconciliar pagamentos               |
 
-Não há cadastro público, acesso de equipe nem portal de clientes nesta versão. O repositório contém somente código, documentação técnica e exemplos fictícios. Dados de operação não devem ser enviados ao Git.
+Não há cadastro público, acesso de equipe nem portal de clientes nesta versão. A única interface externa é o pagamento de uma cobrança por link privado, sem acesso à Central. O repositório contém somente código, documentação técnica e exemplos fictícios. Dados de operação não devem ser enviados ao Git.
+
+O checkout Pix e sua prévia visual (`/pagamento/visualizar`) estão descritos em [CHECKOUT_PIX.md](docs/CHECKOUT_PIX.md), com migração incremental e roteiro de homologação. Conectar credenciais e ativar recebimentos reais são etapas separadas da publicação da interface.
 
 ## Começar no computador
 

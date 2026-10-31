@@ -1,5 +1,8 @@
 import { z } from "zod";
-import { isSafeCheckoutUrl } from "../billing/safety.ts";
+import {
+  isSafeCheckoutUrl,
+  isSafePomarCheckoutUrl,
+} from "../billing/safety.ts";
 import { isDateOnly } from "./dates.ts";
 const id = z.uuid(),
   timestamp = z.iso.datetime({ offset: true });
@@ -71,7 +74,7 @@ export const chargeSchema = z.strictObject({
     .string()
     .max(2048)
     .refine(
-      (v) => v === "" || isSafeCheckoutUrl(v),
+      (v) => v === "" || isSafeCheckoutUrl(v) || isSafePomarCheckoutUrl(v),
       "URL do checkout inválida.",
     ),
   preferenceId: z.string().max(200).nullable(),

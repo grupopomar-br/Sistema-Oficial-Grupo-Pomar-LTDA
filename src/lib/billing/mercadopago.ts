@@ -3,14 +3,18 @@ import { z } from "zod";
 import { decimalCents, isSafeCheckoutUrl } from "./safety.ts";
 import { todayDate } from "../domain/dates.ts";
 import type { BillingConfig } from "../config/billing.ts";
+import type { PixPayer } from "./pix-contract.ts";
 export class ProviderError extends Error {
   definitive: boolean;
+  status?: number;
   constructor(
     message = "Não foi possível confirmar a operação com o provedor.",
     definitive = false,
+    status?: number,
   ) {
     super(message);
     this.definitive = definitive;
+    this.status = status;
   }
 }
 const opaqueId = (value: unknown) => {
@@ -61,6 +65,7 @@ async function providerRequest(
   method = "GET",
   body?: unknown,
   fetcher: typeof fetch = fetch,
+  idempotencyKey?: string,
 ) {
   let response: Response;
   try {
@@ -70,6 +75,7 @@ async function providerRequest(
       headers: {
         Authorization: `Bearer ${config.accessToken}`,
         "Content-Type": "application/json",
+        ...(idempotencyKey ? { "X-Idempotency-Key": idempotencyKey } : {}),
       },
       body: body === undefined ? undefined : JSON.stringify(body),
       cache: "no-store",
@@ -84,6 +90,7 @@ async function providerRequest(
       response.status >= 400 &&
         response.status < 500 &&
         ![408, 429].includes(response.status),
+      response.status,
     );
   const reader = response.body?.getReader();
   if (!reader) throw new ProviderError();
@@ -114,6 +121,95 @@ async function providerRequest(
   } catch {
     throw new ProviderError();
   }
+}
+
+// Direct Pix shares the existing Payments API reconciliation and refund path.
+// The amount, reference and validity always come from the stored charge.
+export async function createPixPayment(
+  config: BillingConfig,
+  charge: PreparedCharge,
+  payer: PixPayer,
+  fetcher: typeof fetch = fetch,
+) {
+  const remaining = new Date(charge.expiresAt).valueOf() - Date.now();
+  if (
+    charge.mode !== config.mode ||
+    !Number.isSafeInteger(charge.amountCents) ||
+    charge.amountCents <= 0 ||
+    remaining < 30 * 60_000 ||
+    remaining > 30 * 86400_000
+  )
+    throw new ProviderError(
+      "A cobrança não está disponível para gerar um Pix.",
+      true,
+    );
+  const names = payer.name.split(/\s+/);
+  const raw = await providerRequest(
+    config,
+    "/v1/payments",
+    "POST",
+    {
+      transaction_amount: Number((charge.amountCents / 100).toFixed(2)),
+      payment_method_id: "pix",
+      description: "Serviços Grupo Pomar",
+      external_reference: charge.id,
+      date_of_expiration: charge.expiresAt,
+      notification_url: new URL(
+        "/api/webhooks/mercadopago",
+        config.appUrl,
+      ).toString(),
+      payer: {
+        email: payer.email,
+        first_name: names[0],
+        last_name: names.slice(1).join(" ") || names[0],
+        identification: {
+          type: payer.document.length === 11 ? "CPF" : "CNPJ",
+          number: payer.document,
+        },
+      },
+    },
+    fetcher,
+    `pomar-pix-${charge.id}`,
+  );
+  return validatePixPayment(config, charge, raw);
+}
+
+export function validatePixPayment(
+  config: BillingConfig,
+  charge: PreparedCharge,
+  raw: Record<string, any>,
+) {
+  const id = opaqueId(raw.id);
+  const expiry = z.iso
+    .datetime({ offset: true })
+    .safeParse(raw.date_of_expiration);
+  if (
+    String(raw.collector_id) !== config.collectorId ||
+    raw.live_mode !== (config.mode === "live") ||
+    raw.currency_id !== "BRL" ||
+    raw.payment_method_id !== "pix" ||
+    raw.external_reference !== charge.id ||
+    decimalCents(raw.transaction_amount) !== charge.amountCents ||
+    !expiry.success ||
+    new Date(expiry.data).valueOf() !== new Date(charge.expiresAt).valueOf()
+  )
+    throw new ProviderError("Os dados do Pix não passaram na conferência.");
+  const qr = raw.point_of_interaction?.transaction_data;
+  if (
+    typeof qr?.qr_code !== "string" ||
+    qr.qr_code.length < 20 ||
+    qr.qr_code.length > 4096 ||
+    typeof qr.qr_code_base64 !== "string" ||
+    qr.qr_code_base64.length > 800_000 ||
+    !/^iVBORw0KGgo[A-Za-z0-9+/=]+$/.test(qr.qr_code_base64)
+  )
+    throw new ProviderError("O provedor ainda não confirmou o QR Code.");
+  return {
+    paymentId: id,
+    qrCode: qr.qr_code,
+    qrBase64: qr.qr_code_base64,
+    expiresAt: expiry.data,
+  };
 }
 export type PreparedCharge = {
   id: string;

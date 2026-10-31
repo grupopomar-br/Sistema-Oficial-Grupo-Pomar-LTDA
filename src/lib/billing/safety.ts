@@ -31,3 +31,24 @@ export function decimalCents(value: unknown): number {
   if (amount > 100_000_000_000n) throw new Error("Valor acima do limite.");
   return Number(amount);
 }
+
+export function isSafePomarCheckoutUrl(
+  value: string,
+  origin?: string,
+): boolean {
+  try {
+    const u = new URL(value);
+    return (
+      u.protocol === "https:" &&
+      !u.username &&
+      !u.password &&
+      !u.port &&
+      !u.search &&
+      !u.hash &&
+      /^\/pagar\/[A-Za-z0-9_-]{43}$/.test(u.pathname) &&
+      (!origin || u.origin === new URL(origin).origin)
+    );
+  } catch {
+    return false;
+  }
+}

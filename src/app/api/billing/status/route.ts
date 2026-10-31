@@ -1,5 +1,6 @@
 import { authorizedOwner } from "@/lib/server/access";
 import { billingWorkerReady } from "@/lib/server/billing-worker";
+import { pixWorkerReady } from "@/lib/server/pix-checkout";
 import { parseBillingConfig } from "@/lib/config/billing";
 import { json, errorResponse } from "@/lib/server/http";
 export async function GET() {
@@ -13,7 +14,8 @@ export async function GET() {
         !error &&
         data?.configured === true &&
         data?.mode === config.mode &&
-        (await billingWorkerReady(config, owner.user.id)),
+        (await billingWorkerReady(config, owner.user.id)) &&
+        (await pixWorkerReady(config)),
       mode: config.mode,
     });
   } catch (error) {

@@ -1,4 +1,4 @@
-# Cobrança e pagamentos — v0.4
+# Cobrança e pagamentos — v0.5
 
 ## Resultado implementado
 
@@ -10,9 +10,9 @@ Mensagens são rascunhos revisáveis. Copiar não envia nem registra contato com
 
 ## Integração inicial
 
-Mercado Pago Checkout Pro por preferências é o primeiro adaptador implementado. É uma decisão técnica inicial, sujeita à escolha do proprietário e à elegibilidade/configuração da conta. Stripe e assinaturas não foram implementados nesta versão.
+O fluxo atual gera checkout Pix com identidade do Grupo Pomar e processa o pagamento pelo Mercado Pago Payments API. O adaptador Checkout Pro por preferências da v0.4 permanece compatível para links anteriores; cartão, Stripe e assinaturas não fazem parte deste novo checkout. Veja o roteiro em [CHECKOUT_PIX.md](CHECKOUT_PIX.md).
 
-O checkout é hospedado no provedor. A Central informa referência, valor da parcela e validade e recebe a URL do checkout. Não envia um cadastro completo do cliente para montar o link. A confirmação consulta o pagamento no provedor, sem confiar em valores e estados enviados pelo navegador ou no corpo do webhook.
+O checkout Pix é uma página pública de pagamento separada da Central, acessível por link privado. A Central define referência, valor da parcela e validade; o pagador fornece somente os dados necessários ao processamento. A confirmação consulta o pagamento no provedor, sem confiar em valores e estados enviados pelo navegador ou no corpo do webhook. Links antigos de Checkout Pro continuam hospedados no provedor.
 
 A integração permanece desativada por padrão. Nenhuma credencial real foi configurada, nenhum link real foi gerado e nenhuma cobrança foi enviada nesta entrega.
 

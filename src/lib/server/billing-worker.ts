@@ -4,7 +4,7 @@ import type { BillingConfig } from "../config/billing";
 import type { VerifiedPayment } from "../billing/mercadopago";
 import { databaseCommand } from "../domain/transport";
 let pool: { key: string; sql: ReturnType<typeof postgres> } | undefined;
-function database(config: BillingConfig) {
+export function billingDatabase(config: BillingConfig) {
   const key = config.databaseUrl + "\n" + (config.databaseCa ?? "");
   if (pool?.key !== key) {
     if (pool) void pool.sql.end({ timeout: 5 });
@@ -31,7 +31,7 @@ export async function attachPreference(
   id: string,
   preference: { preferenceId: string; checkoutUrl: string },
 ) {
-  const sql = database(config);
+  const sql = billingDatabase(config);
   await sql`select public.pomar_billing_attach(${id}::uuid,${preference.preferenceId},${preference.checkoutUrl},${config.collectorId},${config.mode})`;
 }
 export async function markCreationFailure(
@@ -39,14 +39,14 @@ export async function markCreationFailure(
   id: string,
   definitive: boolean,
 ) {
-  const sql = database(config);
+  const sql = billingDatabase(config);
   await sql`select public.pomar_billing_creation_failed(${id}::uuid,${definitive})`;
 }
 export async function applyVerifiedPayment(
   config: BillingConfig,
   payment: VerifiedPayment,
 ) {
-  const sql = database(config);
+  const sql = billingDatabase(config);
   const result =
     await sql`select public.pomar_billing_apply_payment(${JSON.stringify(databaseCommand(payment))}::jsonb) as result`;
   return result[0]?.result;
@@ -56,7 +56,7 @@ export async function billingWorkerReady(
   config: BillingConfig,
   ownerId: string,
 ) {
-  const sql = database(config);
+  const sql = billingDatabase(config);
   const rows = await sql`select public.pomar_billing_worker_status() as config`;
   const row = rows[0]?.config;
   return (

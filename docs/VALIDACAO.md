@@ -1,4 +1,26 @@
-# Registro de validação — v0.4
+# Registro de validação — v0.5
+
+Validação da implementação Pix realizada em 31/10/2026. O navegador do cliente percorre página de cobrança → geração Pix no servidor → Mercado Pago → webhook/consulta autenticada → conciliação no banco → status da página.
+
+| Verificação              | Resultado                                                                                                                                                                  |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Suíte automatizada       | 45 testes passaram, incluindo 6 testes do checkout Pix.                                                                                                                    |
+| SQL incremental          | Quarta migração aplicada em PostgreSQL via PGlite junto às anteriores.                                                                                                     |
+| Isolamento               | Anônimo e outro usuário sem leitura da tabela privada nem execução dos RPCs. Worker sem CRUD.                                                                              |
+| Integridade Pix          | Valor/referência/ambiente/QR conferidos; chave de idempotência fixa; pagador preservado na tentativa incerta; limite por cobrança no banco.                                |
+| Baixa financeira         | Pagamento de teste sem recibo real; evento live controlado gera uma única baixa mesmo repetido.                                                                            |
+| Build e TypeScript       | Build de produção concluído; sem erros de TypeScript.                                                                                                                      |
+| HTTP de produção         | Prévia responde 200 sem credenciais; link indisponível não confirma pagamento por URL; APIs públicas retornam 404 sem configuração; `no-store` e `no-referrer` conferidos. |
+| Formatação               | Prettier aprovado.                                                                                                                                                         |
+| Dependências de produção | Auditoria sem vulnerabilidades conhecidas no momento da execução.                                                                                                          |
+
+O primeiro build local encontrou cache gerado ilegível. O cache foi preservado fora da compilação; um build limpo passou. Não houve troca de dependências para contornar o erro.
+
+O launcher de prévia interna anunciou o endereço e encerrou antes de servir a aplicação. O navegador retornou conexão recusada e o estado confirmou servidor parado. A rede e os mecanismos de navegador não foram alterados. A validação HTTP do build utilizou o teste de produção do próprio repositório. O aceite visual e o teste em celular real permanecem etapas distintas.
+
+**Limite material:** as chamadas Mercado Pago desses testes foram simuladas; o banco foi local e controlado. Nenhum teste desta entrega comprova conta elegível, QR pagável em produção, entrega de webhook real, liquidação bancária ou concorrência entre conexões reais. A migração do projeto remoto, o worker e as credenciais reais não foram alterados por esta implementação. Receber clientes exige homologação conforme `CHECKOUT_PIX.md`.
+
+## Histórico da validação v0.4
 
 Validação local realizada em 29/10/2026. As evidências são reproduzíveis pelos comandos do projeto.
 

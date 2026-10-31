@@ -153,7 +153,7 @@ export default function Collections(props: ViewProps) {
           <CreditCard size={21} />
         </span>
         <div>
-          <strong>Checkout oficial · Mercado Pago</strong>
+          <strong>Checkout Pix · Grupo Pomar + Mercado Pago</strong>
           <p>
             {integration.enabled
               ? integration.mode === "test"
@@ -171,6 +171,14 @@ export default function Collections(props: ViewProps) {
               : "Ativo"
             : "Configuração pendente"}
         </Badge>
+        <a
+          className="button button-ghost"
+          href="/pagamento/visualizar"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Ver prévia do checkout <ArrowUpRight size={15} />
+        </a>
       </section>
       {reviews.length > 0 && (
         <section className="panel collection-review">
@@ -572,7 +580,7 @@ function CollectionDialog({
           ? "Condições de pagamento e entrega"
           : dialog.kind === "contact"
             ? "Registrar acompanhamento"
-            : "Gerar checkout oficial"
+            : "Gerar link Pix Grupo Pomar"
       }
       subtitle={`${dialog.row.contract.title} · ${dialog.row.client?.name ?? "Cliente"}`}
       onClose={onClose}
@@ -692,9 +700,10 @@ function CollectionDialog({
               </select>
             </Field>
             <div className="inline-note">
-              Este link é para o saldo desta parcela. Não cria assinatura nem
-              recorrência. Cartão e dados bancários do cliente são tratados pelo
-              provedor. A cobrança não é enviada automaticamente.
+              O cliente receberá a página de pagamento do Grupo Pomar com o
+              valor desta parcela, QR Code e Pix Copia e Cola. O pagamento será
+              processado pelo Mercado Pago. A cobrança não é enviada
+              automaticamente.
             </div>
           </>
         )}

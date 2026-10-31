@@ -6,9 +6,9 @@ import {
 } from "@/lib/server/access";
 import { parseEnvironment } from "@/lib/config/environment";
 import { parseBillingConfig } from "@/lib/config/billing";
-import { createPreference, ProviderError } from "@/lib/billing/mercadopago";
+import { ProviderError } from "@/lib/billing/mercadopago";
+import { attachPixCheckout, pixWorkerReady } from "@/lib/server/pix-checkout";
 import {
-  attachPreference,
   markCreationFailure,
   billingWorkerReady,
 } from "@/lib/server/billing-worker";
@@ -35,6 +35,14 @@ export async function POST(request: Request) {
         503,
       );
     const input = schema.parse(await boundedJson(request, 32768));
+    if (
+      !(await billingWorkerReady(config, owner.user.id)) ||
+      !(await pixWorkerReady(config))
+    )
+      throw new AccessError(
+        "A configuração do checkout Pix ainda precisa ser concluída.",
+        503,
+      );
     const result = await owner.supabase.rpc("pomar_prepare_charge", {
       p_key: input.commandId,
       p_installment_id: input.installmentId,
@@ -60,8 +68,7 @@ export async function POST(request: Request) {
         "A configuração de cobrança está divergente.",
         true,
       );
-    const preference = await createPreference(config, charge);
-    await attachPreference(config, charge.id, preference);
+    await attachPixCheckout(config, charge.id);
     return json({ workspace: await readWorkspace(owner.supabase) });
   } catch (error) {
     if (preparedId && config?.enabled)
