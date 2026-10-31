@@ -1,8 +1,8 @@
-# Central Operacional Pomar — v0.5
+# Central Operacional Pomar — v0.6
 
 Sistema interno do Grupo Pomar para um único proprietário. Reúne direção diária, relacionamento, execução, comercial e financeiro. Interface em português, com layout adaptável e estrutura preparada para Supabase.
 
-**Estado desta entrega:** checkout Pix com identidade do Grupo Pomar, prévia visual e integração com Mercado Pago Payments API. Os 45 testes automatizados locais, build, TypeScript e verificações HTTP passaram. O recebimento real exige a migração incremental, credenciais e homologação da conta Mercado Pago; segue desativado por padrão. Supabase e credenciais são configurados manualmente. Veja [o relatório de validação](docs/VALIDACAO.md) e [o roteiro do checkout](docs/CHECKOUT_PIX.md).
+**Estado desta entrega:** checkout Pix com identidade do Grupo Pomar, prévia visual e integração com Mercado Pago Orders API. A criação assíncrona preserva a mesma order; datas financeiras ausentes exigem conferência do proprietário, sem inventar movimentações no caixa. O recebimento real exige a migração incremental, credenciais e homologação da conta Mercado Pago; segue desativado por padrão. Supabase e credenciais são configurados manualmente. Veja [o relatório de validação](docs/VALIDACAO.md) e [o roteiro do checkout](docs/CHECKOUT_PIX.md).
 
 ## O que já foi implementado
 

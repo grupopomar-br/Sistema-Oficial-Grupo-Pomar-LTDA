@@ -1,4 +1,18 @@
-# Registro de validação — v0.5
+# Registro de validação — v0.6
+
+Validação local da migração Orders em 31/10/2026. A cobrança continua desativada até a configuração manual e homologação real.
+
+- 54 testes automatizados passaram: 8 novos casos do adaptador Orders e 1 fluxo SQL completo, além da cobertura anterior.
+- Criação em `/v1/orders` com um único Pix, valor decimal em string, duração e pagador persistidos, mesma chave/corpo no retry, recuperação de timeout/409 pela referência única e ID preservado antes de existir QR.
+- Conta/país/ambiente conferidos antes do POST; consulta verifica conta, aplicação, método, valor e moeda. Uma credencial `APP_USR` não é considerada prova de ambiente.
+- HMAC de Order usa identificador alfanumérico normalizado em minúsculas no manifest. O status financeiro vem da consulta autenticada, nunca do corpo recebido ou da URL do comprador.
+- Quinta migração executada em PGlite após as quatro anteriores. IDs legados continuam compatíveis; RLS, grants e worker restrito preservados.
+- Aprovação sem data original fica em conciliação, confirma o pagamento ao pagador e oculta o QR. O proprietário confere a data no provedor; confirmação auditada cria um recibo único. Repetição não duplica; eventos posteriores preservam a data confirmada. Devolução sem data permanece em revisão.
+- Build de produção e TypeScript passaram. Verificações HTTP de produção e formatação passaram; auditoria de dependências de produção reportou 0 vulnerabilidades conhecidas.
+
+As respostas do Mercado Pago são controladas nos testes. O retorno real de `/users/me`, a conta Teste, os campos do GET da order, as notificações e a confirmação financeira ainda precisam de homologação. Não foi criado Pix real nem aplicada migração no banco remoto. A interface de confirmação manual de datas de devolução não está implementada; esse procedimento precisa ser resolvido antes de operar devoluções reais. Não houve medição de desempenho ou aprovação de layout em celular físico.
+
+## Histórico da validação v0.5
 
 Validação da implementação Pix realizada em 31/10/2026. O navegador do cliente percorre página de cobrança → geração Pix no servidor → Mercado Pago → webhook/consulta autenticada → conciliação no banco → status da página.
 

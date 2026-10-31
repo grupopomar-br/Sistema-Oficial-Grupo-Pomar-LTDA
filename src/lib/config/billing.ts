@@ -5,6 +5,7 @@ export type BillingConfig = {
   accessToken: string;
   webhookSecret: string;
   collectorId: string;
+  applicationId: string;
   databaseUrl: string;
   databaseCa?: string;
   appUrl: string;
@@ -34,6 +35,9 @@ export function parseBillingConfig(
   if (webhookSecret.length < 32 || /[\r\n]/.test(webhookSecret))
     invalid.push("POMAR_MP_WEBHOOK_SECRET");
   if (!/^\d{1,30}$/.test(collectorId)) invalid.push("POMAR_MP_COLLECTOR_ID");
+  const applicationId = env.POMAR_MP_APPLICATION_ID ?? "";
+  if (!/^\d{1,30}$/.test(applicationId))
+    invalid.push("POMAR_MP_APPLICATION_ID");
   try {
     const db = new URL(databaseUrl);
     const project = new URL(app.supabaseUrl).hostname.split(".")[0];
@@ -69,6 +73,7 @@ export function parseBillingConfig(
     accessToken,
     webhookSecret,
     collectorId,
+    applicationId,
     databaseUrl,
     databaseCa,
     appUrl: app.appUrl,

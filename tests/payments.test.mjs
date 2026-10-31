@@ -22,6 +22,7 @@ const env = {
   POMAR_MP_ACCESS_TOKEN: "TEST-fixture-token-not-a-real-credential",
   POMAR_MP_WEBHOOK_SECRET: "webhook-fixture-secret-not-a-real-credential",
   POMAR_MP_COLLECTOR_ID: "987654321",
+  POMAR_MP_APPLICATION_ID: "123456789",
   POMAR_BILLING_DATABASE_URL: `postgres://pomar_billing_worker.${ref}:fixture-password@aws-0-test.pooler.supabase.com:6543/postgres`,
 };
 const config = parseBillingConfig(env);

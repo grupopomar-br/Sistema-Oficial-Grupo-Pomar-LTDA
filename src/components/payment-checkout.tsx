@@ -119,7 +119,8 @@ export default function PaymentCheckout({
     [token],
   );
   useEffect(() => {
-    if (preview || checkout?.status !== "pending") return;
+    if (preview || !["pending", "processing"].includes(checkout?.status ?? ""))
+      return;
     const timer = setInterval(() => {
       if (document.visibilityState === "visible")
         void request({ action: "refresh" }, true);
@@ -139,7 +140,8 @@ export default function PaymentCheckout({
       : null;
   const expired =
     checkout?.status === "expired" ||
-    (seconds === 0 && ["ready", "pending"].includes(checkout?.status ?? ""));
+    (seconds === 0 &&
+      ["ready", "pending", "processing"].includes(checkout?.status ?? ""));
   const status = expired ? "expired" : checkout?.status;
   const paid = status === "paid";
   const unavailable = !checkout;
@@ -270,7 +272,7 @@ export default function PaymentCheckout({
               <b />
               <span
                 className={
-                  status === "pending"
+                  status === "pending" || status === "processing"
                     ? styles.current
                     : paid
                       ? styles.finished
@@ -354,6 +356,22 @@ export default function PaymentCheckout({
                       Conferir pagamento
                     </button>
                   )}
+                </div>
+              ) : status === "processing" ? (
+                <div className={styles.state} role="status" aria-live="polite">
+                  <RefreshCw size={38} className={styles.spin} />
+                  <h3>Estamos preparando seu Pix.</h3>
+                  <p>
+                    O Mercado Pago está processando a solicitação. Aguarde nesta
+                    página; seu pedido será mantido.
+                  </p>
+                  <button
+                    className={styles.secondary}
+                    disabled={busy}
+                    onClick={() => void request({ action: "refresh" })}
+                  >
+                    {busy ? "Conferindo…" : "Conferir novamente"}
+                  </button>
                 </div>
               ) : status === "ready" ? (
                 <>
@@ -463,7 +481,7 @@ export default function PaymentCheckout({
                     ) : (
                       <div className={styles.qrPreview}>
                         <RefreshCw size={42} />
-                        <span>Conferindo o QR Code…</span>
+                        <span>Use o código Pix Copia e Cola abaixo.</span>
                       </div>
                     )}
                   </div>

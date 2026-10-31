@@ -30,7 +30,10 @@ export function verifyMercadoPagoSignature(
 ): string {
   const url = new URL(request.url),
     ids = url.searchParams.getAll("data.id");
-  if (ids.length !== 1 || !/^\d{1,30}$/.test(ids[0]))
+  if (
+    ids.length !== 1 ||
+    !/^(?:\d{1,30}|ORD[0-9A-HJKMNP-TV-Z]{26})$/i.test(ids[0])
+  )
     throw new ProviderError("Notificação inválida.", true);
   const requestId = request.headers.get("x-request-id") ?? "",
     signature = request.headers.get("x-signature") ?? "";
@@ -53,19 +56,20 @@ export function verifyMercadoPagoSignature(
   if (timestamp > now + 300000)
     throw new ProviderError("Assinatura inválida.", true);
   const expected = createHmac("sha256", secret)
-    .update(`id:${ids[0]};request-id:${requestId};ts:${ts};`)
+    .update(`id:${ids[0].toLowerCase()};request-id:${requestId};ts:${ts};`)
     .digest();
   if (!timingSafeEqual(expected, Buffer.from(mac, "hex")))
     throw new ProviderError("Assinatura inválida.", true);
-  return ids[0];
+  return /^ord/i.test(ids[0]) ? ids[0].toUpperCase() : ids[0];
 }
-async function providerRequest(
+export async function providerRequest(
   config: BillingConfig,
   path: string,
   method = "GET",
   body?: unknown,
   fetcher: typeof fetch = fetch,
   idempotencyKey?: string,
+  timeoutMs = 15000,
 ) {
   let response: Response;
   try {
@@ -79,7 +83,7 @@ async function providerRequest(
       },
       body: body === undefined ? undefined : JSON.stringify(body),
       cache: "no-store",
-      signal: AbortSignal.timeout(15000),
+      signal: AbortSignal.timeout(timeoutMs),
     });
   } catch {
     throw new ProviderError();

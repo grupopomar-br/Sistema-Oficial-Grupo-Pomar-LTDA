@@ -6,7 +6,13 @@ import {
   requireOrigin,
   AccessError,
 } from "@/lib/server/access";
-import { fetchVerifiedPayment, ProviderError } from "@/lib/billing/mercadopago";
+import { ProviderError } from "@/lib/billing/mercadopago";
+import {
+  fetchVerifiedTransaction,
+  providerIdPattern,
+  orderIdPattern,
+} from "@/lib/billing/orders";
+import { todayDate } from "@/lib/domain/dates";
 import {
   applyVerifiedPayment,
   billingWorkerReady,
@@ -25,7 +31,13 @@ export async function POST(request: Request) {
         503,
       );
     const input = z
-      .strictObject({ paymentId: z.string().regex(/^\d{1,30}$/) })
+      .strictObject({
+        paymentId: z.string().regex(providerIdPattern),
+        confirmedPaidOn: z.iso
+          .date()
+          .refine((d) => d <= todayDate())
+          .optional(),
+      })
       .parse(await boundedJson(request, 8192));
     const { data, error } = await owner.supabase
       .from("pomar_provider_payments")
@@ -41,8 +53,30 @@ export async function POST(request: Request) {
         "A configuração do processador precisa ser conferida.",
         503,
       );
-    const payment = await fetchVerifiedPayment(config, input.paymentId);
-    await applyVerifiedPayment(config, payment);
+    const payment = await fetchVerifiedTransaction(config, input.paymentId);
+    if (input.confirmedPaidOn) {
+      if (
+        !orderIdPattern.test(input.paymentId) ||
+        payment.status !== "approved" ||
+        payment.refundedCents !== 0
+      )
+        throw new AccessError(
+          "Confira o estado atual do pagamento antes de informar a data.",
+          409,
+        );
+      if (payment.paidOn && payment.paidOn !== input.confirmedPaidOn)
+        throw new AccessError(
+          "A data informada diverge da data confirmada pelo provedor.",
+          409,
+        );
+      payment.paidOn = input.confirmedPaidOn;
+    }
+    await applyVerifiedPayment(
+      config,
+      input.confirmedPaidOn
+        ? { ...payment, ownerConfirmedBy: owner.user.id }
+        : payment,
+    );
     return json({ workspace: await readWorkspace(owner.supabase) });
   } catch (error) {
     if (error instanceof ProviderError)

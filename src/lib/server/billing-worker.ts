@@ -44,7 +44,7 @@ export async function markCreationFailure(
 }
 export async function applyVerifiedPayment(
   config: BillingConfig,
-  payment: VerifiedPayment,
+  payment: VerifiedPayment & { ownerConfirmedBy?: string },
 ) {
   const sql = billingDatabase(config);
   const result =
