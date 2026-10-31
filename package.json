@@ -33,7 +33,7 @@
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.13",
-    "@types/node": "24.19.2",
+    "@types/node": "26.6.5",
     "@types/react": "19.3.0",
     "prettier": "3.9.10",
     "supabase": "2.122.0",
