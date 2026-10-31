@@ -81,6 +81,33 @@ try {
   );
   assert.equal(callback.status, 200);
   assert.ok((await callback.text()).includes("não altera o estado financeiro"));
+  const preview = await fetch(origin + "/pagamento/visualizar");
+  assert.equal(preview.status, 200);
+  assert.ok((await preview.text()).includes("PRÉVIA VISUAL"));
+  const checkoutToken = "A".repeat(43);
+  const checkout = await fetch(
+    origin + "/pagar/" + checkoutToken + "?status=approved",
+  );
+  assert.equal(checkout.status, 200);
+  const checkoutHtml = await checkout.text();
+  assert.ok(checkoutHtml.includes("Este link não está disponível."));
+  assert.ok(!checkoutHtml.includes("Pagamento confirmado!"));
+  assert.equal(checkout.headers.get("referrer-policy"), "no-referrer");
+  for (const method of ["GET", "POST"]) {
+    const response = await fetch(origin + "/api/checkout/" + checkoutToken, {
+      method,
+      ...(method === "POST"
+        ? {
+            headers: { "Content-Type": "application/json", Origin: origin },
+            body: JSON.stringify({ action: "generate", amountCents: 1 }),
+          }
+        : {}),
+    });
+    assert.equal(response.status, 404);
+    assert.ok(response.headers.get("cache-control").includes("no-store"));
+    assert.equal(response.headers.get("referrer-policy"), "no-referrer");
+    assert.equal((await response.json()).checkout, undefined);
+  }
   const csp = root.headers.get("content-security-policy");
   assert.ok(csp.includes("'strict-dynamic'"));
   assert.ok(!csp.includes("unsafe-eval"));

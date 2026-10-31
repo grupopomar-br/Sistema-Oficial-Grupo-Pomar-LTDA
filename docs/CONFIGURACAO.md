@@ -20,6 +20,7 @@ No SQL Editor do projeto correto, execute os arquivos completos nesta ordem:
 supabase/migrations/20261028225524_central_operacional_v1.sql
 supabase/migrations/20261029150132_sessoes_e_cobranca.sql
 supabase/migrations/20261029150348_checkout_mercadopago.sql
+supabase/migrations/20261031204010_checkout_pix_pomar.sql
 ```
 
 Essas migrações criam tabelas prefixadas `pomar_`, políticas de acesso, restrições financeiras, auditoria e RPCs. Foram preparadas para um banco novo. Execute cada uma uma vez; o procedimento não apaga tabelas existentes nem faz alterações destrutivas em projetos antigos.
