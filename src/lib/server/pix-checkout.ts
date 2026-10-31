@@ -2,7 +2,12 @@ import "server-only";
 import { createHash, randomBytes } from "node:crypto";
 import { parseBillingConfig, type BillingConfig } from "../config/billing";
 import { billingDatabase, applyVerifiedPayment } from "./billing-worker";
-import { createPixPayment, fetchVerifiedPayment } from "../billing/mercadopago";
+import {
+  createPixOrder,
+  fetchVerifiedOrder,
+  fetchVerifiedTransaction,
+  orderIdPattern,
+} from "../billing/orders";
 import {
   checkoutTokenPattern,
   type PixPayer,
@@ -15,7 +20,7 @@ export async function pixWorkerReady(config: BillingConfig) {
   const sql = billingDatabase(config);
   const rows =
     await sql`select pomar_private.pix_checkout_capabilities() as version`;
-  return rows[0]?.version === 1;
+  return rows[0]?.version === 2;
 }
 export async function attachPixCheckout(
   config: BillingConfig,
@@ -75,14 +80,12 @@ export async function generatePix(
       amountCents: Number(row.amount_cents),
       expiresAt: row.expires_at,
       mode: row.mode,
+      expirationSeconds: Number(row.expiration_seconds),
+      createdAt: row.created_at,
     };
-    const result = await createPixPayment(config, charge, row.payer);
-    await sql`select pomar_private.pix_checkout_attach(${hash(token)},${result.paymentId},${result.qrCode},${result.qrBase64},${result.expiresAt}::timestamptz)`;
-    // A webhook may arrive first; reconciliation is transactional and idempotent.
-    await applyVerifiedPayment(
-      config,
-      await fetchVerifiedPayment(config, result.paymentId),
-    );
+    const result = await createPixOrder(config, charge, row.payer);
+    await sql`select pomar_private.pix_checkout_order(${hash(token)},${result.orderId})`;
+    return refreshPix(config, token);
   }
   return publicView(await read(config, token));
 }
@@ -92,7 +95,24 @@ export async function refreshPix(config: BillingConfig, token: string) {
   const rows =
     await sql`select pomar_private.pix_checkout_refresh(${hash(token)}) as payment_id`;
   const id = rows[0]?.payment_id;
-  if (id)
-    await applyVerifiedPayment(config, await fetchVerifiedPayment(config, id));
+  if (id) {
+    if (orderIdPattern.test(id)) {
+      const result = await fetchVerifiedOrder(config, id);
+      const current = await read(config, token);
+      if (
+        !current ||
+        result.payment.externalReference !== current.charge_id ||
+        result.payment.amountCents !== Number(current.amount_cents)
+      )
+        throw new Error("A order diverge desta cobrança.");
+      if (result.qr)
+        await sql`select pomar_private.pix_checkout_order_qr(${hash(token)},${id},${result.qr.qrCode},${result.qr.qrBase64},${result.qr.expiresAt}::timestamptz)`;
+      await applyVerifiedPayment(config, result.payment);
+    } else
+      await applyVerifiedPayment(
+        config,
+        await fetchVerifiedTransaction(config, id),
+      );
+  }
   return publicView(await read(config, token));
 }

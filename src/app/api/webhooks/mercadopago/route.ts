@@ -1,9 +1,9 @@
 import { parseBillingConfig } from "@/lib/config/billing";
 import {
   verifyMercadoPagoSignature,
-  fetchVerifiedPayment,
   ProviderError,
 } from "@/lib/billing/mercadopago";
+import { fetchVerifiedTransaction, orderIdPattern } from "@/lib/billing/orders";
 import { applyVerifiedPayment } from "@/lib/server/billing-worker";
 import { boundedJson, json } from "@/lib/server/http";
 // Public machine callback: authenticates the provider signature, never an owner cookie.
@@ -29,17 +29,20 @@ export async function POST(request: Request) {
   }
   if (!body || typeof body !== "object" || !("type" in body))
     return json({ received: false }, 400);
-  if (body.type !== "payment") return json({ received: true });
+  if (!["payment", "order"].includes(String(body.type)))
+    return json({ received: true });
+  if ((body.type === "order") !== orderIdPattern.test(paymentId))
+    return json({ received: false }, 400);
   const data = "data" in body ? body.data : null;
   if (
     !data ||
     typeof data !== "object" ||
     !("id" in data) ||
-    String(data.id) !== paymentId
+    String(data.id).toUpperCase() !== paymentId
   )
     return json({ received: false }, 400);
   try {
-    const payment = await fetchVerifiedPayment(config, paymentId);
+    const payment = await fetchVerifiedTransaction(config, paymentId);
     await applyVerifiedPayment(config, payment);
     return json({ received: true });
   } catch (error) {

@@ -31,7 +31,7 @@ import {
 } from "@/lib/domain/collections";
 import { newBase } from "@/lib/domain/model";
 import { parseWorkspace } from "@/lib/domain/workspace";
-import { money, fullDate } from "@/lib/domain/dates";
+import { money, fullDate, todayDate } from "@/lib/domain/dates";
 import { parseBRL } from "@/lib/domain/finance";
 import type { CollectionAgreement } from "@/lib/domain/extensions";
 type Row = ReturnType<typeof collectionSummary>["rows"][number];
@@ -76,14 +76,17 @@ export default function Collections(props: ViewProps) {
         .includes(query.toLocaleLowerCase("pt-BR")),
   );
   const current = Math.min(page, Math.max(1, Math.ceil(rows.length / 10)));
-  const reconcile = async (paymentId: string) => {
+  const reconcile = async (paymentId: string, confirmedPaidOn?: string) => {
     setReconciling(paymentId);
     setReconcileError("");
     try {
       const response = await fetch("/api/billing/reconcile", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ paymentId }),
+        body: JSON.stringify({
+          paymentId,
+          ...(confirmedPaidOn ? { confirmedPaidOn } : {}),
+        }),
       });
       const data = await response.json();
       if (!response.ok)
@@ -201,14 +204,42 @@ export default function Collections(props: ViewProps) {
               </div>
               <div className="review-amount">
                 <strong>{format(payment.amountCents)}</strong>
-                <Button
-                  disabled={!!reconciling}
-                  onClick={() => void reconcile(payment.providerPaymentId)}
-                >
-                  {reconciling === payment.providerPaymentId
-                    ? "Conferindo..."
-                    : "Conferir agora"}
-                </Button>
+                {payment.providerPaymentId.startsWith("ORD") &&
+                payment.status === "approved" &&
+                payment.reviewReason === "Data de aprovação não confirmada." &&
+                !payment.receiptId ? (
+                  <form
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      const date = new FormData(event.currentTarget).get(
+                        "confirmedPaidOn",
+                      );
+                      if (typeof date === "string")
+                        void reconcile(payment.providerPaymentId, date);
+                    }}
+                  >
+                    <Field label="Data do recebimento conferida no Mercado Pago">
+                      <input
+                        name="confirmedPaidOn"
+                        type="date"
+                        required
+                        max={todayDate()}
+                      />
+                    </Field>
+                    <Button type="submit" disabled={!!reconciling}>
+                      Confirmar data e conciliar
+                    </Button>
+                  </form>
+                ) : (
+                  <Button
+                    disabled={!!reconciling}
+                    onClick={() => void reconcile(payment.providerPaymentId)}
+                  >
+                    {reconciling === payment.providerPaymentId
+                      ? "Conferindo..."
+                      : "Conferir agora"}
+                  </Button>
+                )}
               </div>
             </div>
           ))}

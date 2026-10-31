@@ -82,7 +82,9 @@ export const chargeSchema = z.strictObject({
 export const providerPaymentSchema = z.strictObject({
   ...base,
   provider: z.literal("mercadopago"),
-  providerPaymentId: z.string().regex(/^\d{1,30}$/),
+  providerPaymentId: z
+    .string()
+    .regex(/^(?:\d{1,30}|ORD[0-9A-HJKMNP-TV-Z]{26})$/),
   chargeId: id.nullable(),
   receiptId: id.nullable(),
   amountCents: cents.positive(),
@@ -111,7 +113,9 @@ export const refundSchema = z.strictObject({
   receiptId: id,
   installmentId: id,
   providerPaymentId: id,
-  providerRefundId: z.string().regex(/^\d{1,40}$/),
+  providerRefundId: z
+    .string()
+    .regex(/^(?:\d{1,40}|REF[0-9A-HJKMNP-TV-Z]{26})$/),
   amountCents: cents.positive(),
   occurredOn: date,
   reason: z.enum(["refund"]),

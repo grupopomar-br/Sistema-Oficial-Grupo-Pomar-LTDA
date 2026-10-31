@@ -1,4 +1,4 @@
-# Cobrança e pagamentos — v0.5
+# Cobrança e pagamentos — v0.6
 
 ## Resultado implementado
 
@@ -10,7 +10,7 @@ Mensagens são rascunhos revisáveis. Copiar não envia nem registra contato com
 
 ## Integração inicial
 
-O fluxo atual gera checkout Pix com identidade do Grupo Pomar e processa o pagamento pelo Mercado Pago Payments API. O adaptador Checkout Pro por preferências da v0.4 permanece compatível para links anteriores; cartão, Stripe e assinaturas não fazem parte deste novo checkout. Veja o roteiro em [CHECKOUT_PIX.md](CHECKOUT_PIX.md).
+O fluxo atual gera checkout Pix com identidade do Grupo Pomar e processa o pagamento pelo Mercado Pago Orders API. O adaptador Checkout Pro por preferências da v0.4 permanece compatível para links anteriores; cartão, Stripe e assinaturas não fazem parte deste novo checkout. Veja o roteiro em [CHECKOUT_PIX.md](CHECKOUT_PIX.md).
 
 O checkout Pix é uma página pública de pagamento separada da Central, acessível por link privado. A Central define referência, valor da parcela e validade; o pagador fornece somente os dados necessários ao processamento. A confirmação consulta o pagamento no provedor, sem confiar em valores e estados enviados pelo navegador ou no corpo do webhook. Links antigos de Checkout Pro continuam hospedados no provedor.
 
@@ -62,9 +62,9 @@ As funções privilegiadas usam `search_path` vazio, conferem `session_user`, co
 
 ## Configuração manual
 
-1. Conclua `CONFIGURACAO.md` e as três migrações em um projeto novo de homologação. A aplicação funciona sem ativar a integração.
+1. Conclua `CONFIGURACAO.md` e as cinco migrações em um projeto novo de homologação. A aplicação funciona sem ativar a integração.
 2. Crie/configure a aplicação de pagamentos na conta escolhida do Mercado Pago e confirme o uso de testes, os meios disponíveis e os requisitos da conta. Tarifas e habilitações devem ser conferidas na própria conta.
-3. Configure Webhooks para eventos de pagamento, com HTTPS, apontando para `ORIGEM/api/webhooks/mercadopago`. Use Webhooks, não IPN.
+3. Configure Webhooks para o evento **Order (Mercado Pago)**, com HTTPS, apontando para `ORIGEM/api/webhooks/mercadopago`. Use Webhooks, não IPN.
 4. Guarde Access Token e segredo do webhook no ambiente privado do servidor. Nunca em variáveis `NEXT_PUBLIC_`, Git, mensagens ou capturas.
 5. Prepare um segredo exclusivo de conexão do worker no seu gerenciador. Execute `supabase/03_cobranca_configuracao.sql` em sessão privada do SQL Editor, preenchendo o UUID do proprietário, o ID da conta recebedora de teste e esse segredo. Não salve/compartilhe a cópia preenchida.
 6. No diálogo Connect do Supabase, copie o host real do pooler do projeto. A URI precisa usar `pomar_billing_worker.PROJECT_REF`, porta 6543 ou 5432 e banco `postgres`. Codifique corretamente caracteres especiais da senha na URI. Não use o usuário `postgres`.
@@ -77,6 +77,7 @@ As funções privilegiadas usam `search_path` vazio, conferem `session_user`, co
 | `POMAR_PAYMENT_MODE`           | `test` em homologação                                           |
 | `POMAR_MP_ACCESS_TOKEN`        | Token privado da aplicação/conta de teste correta               |
 | `POMAR_MP_WEBHOOK_SECRET`      | Segredo de assinatura do endpoint                               |
+| `POMAR_MP_APPLICATION_ID`      | ID da aplicação esperado na order                               |
 | `POMAR_MP_COLLECTOR_ID`        | ID exato da conta recebedora                                    |
 | `POMAR_BILLING_DATABASE_URL`   | Conexão do papel restrito, no mesmo projeto do Supabase         |
 | `POMAR_BILLING_DB_CA_BASE64`   | CA do projeto quando necessário                                 |
@@ -94,6 +95,8 @@ Os testes locais exercitam funções reais do PostgreSQL com representação con
 - Se houver divergência, revise valor, vínculo e lançamentos manuais. Use **Conferir agora** após a correção pertinente; a conciliação permanece idempotente.
 - Para interromper a integração, desative a variável e a configuração privada do banco, bloqueie o login do worker e revogue/rotacione as credenciais comprometidas. Links já emitidos precisam ser tratados também no provedor; desativar a Central não é cancelar um checkout remoto.
 - Mantenha monitoramento de respostas 4xx/5xx dos webhooks, retenção adequada e alertas no ambiente de hospedagem antes do uso real.
+
+A confirmação das datas de recebimento e a revisão de devoluções sem datas estão descritas em [CHECKOUT_PIX.md](CHECKOUT_PIX.md). Não substituir uma data ausente pela data de atualização da order.
 
 ## Referências oficiais consultadas
 

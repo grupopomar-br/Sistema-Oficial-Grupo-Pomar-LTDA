@@ -37,7 +37,14 @@ export const pixPayerSchema = z.strictObject({
 });
 export type PixPayer = z.infer<typeof pixPayerSchema>;
 export type PixCheckout = {
-  status: "ready" | "pending" | "paid" | "review" | "expired" | "closed";
+  status:
+    | "ready"
+    | "processing"
+    | "pending"
+    | "paid"
+    | "review"
+    | "expired"
+    | "closed";
   amountCents: number;
   description: string;
   reference: string;
