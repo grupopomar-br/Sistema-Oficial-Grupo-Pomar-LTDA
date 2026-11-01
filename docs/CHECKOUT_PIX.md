@@ -78,6 +78,10 @@ O modo e o recebedor também precisam corresponder à configuração privada no 
 
 Os testes automatizados do repositório usam respostas controladas de API e PostgreSQL via PGlite. Eles não comprovam a elegibilidade da conta, a liquidação bancária, entrega real de webhooks ou concorrência entre conexões de produção. Esses pontos exigem homologação no serviço real.
 
+Os testes do worker também usam o driver Postgres.js instalado sobre o protocolo PostgreSQL do PGlite, com `prepare=false`. Isso verifica o formato dos parâmetros realmente enviados às funções de início e confirmação. Objetos JSONB devem usar `sql.json(objeto)`: aplicar `JSON.stringify` antes desse binding faz o driver enviar uma string JSON e o banco rejeitar o comando. O teste reproduz essa rejeição e confirma início, aprovação de teste sem caixa e confirmação live fictícia idempotente. Esse transporte local não homologa autenticação, TLS ou o pooler remoto.
+
+Para homologar Pix em Teste, seguir o [roteiro oficial de teste Pix](https://www.mercadopago.com.br/developers/pt/docs/checkout-api-orders/integration-test/pix): valor `50.00`, primeiro nome `APRO` e e-mail `test_payer@example.com`. A aprovação é automática nesse cenário; não efetuar pagamento em banco real. Se um envio anterior já tiver persistido outro pagador, não alterar a chave idempotente ou a tentativa para forçar a troca: conferir primeiro o estado e a resposta do provedor.
+
 ## Ativar operação real
 
 Após a homologação e a decisão de usar o banco na operação: configurar credenciais produtivas, `POMAR_ENVIRONMENT=production`, `POMAR_PAYMENT_MODE=live`, `POMAR_BILLING_LIVE_CONFIRMED=yes` e modo/recebedor correspondentes no banco. Conferir domínio HTTPS, worker e webhook novamente. As credenciais básicas existentes do Supabase permanecem do mesmo projeto.
