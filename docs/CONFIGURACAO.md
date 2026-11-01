@@ -22,6 +22,7 @@ supabase/migrations/20261029150132_sessoes_e_cobranca.sql
 supabase/migrations/20261029150348_checkout_mercadopago.sql
 supabase/migrations/20261031204010_checkout_pix_pomar.sql
 supabase/migrations/20261031215612_checkout_pix_orders.sql
+supabase/migrations/20261101160648_checkout_pix_sandbox_ids.sql
 ```
 
 Essas migrações criam tabelas prefixadas `pomar_`, políticas de acesso, restrições financeiras, auditoria e RPCs. Foram preparadas para um banco novo. Execute cada uma uma vez; o procedimento não apaga tabelas existentes nem faz alterações destrutivas em projetos antigos.

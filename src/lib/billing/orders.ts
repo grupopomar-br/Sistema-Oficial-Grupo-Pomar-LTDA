@@ -13,9 +13,16 @@ import {
   type VerifiedRefund,
 } from "./mercadopago.ts";
 
-export const orderIdPattern = /^ORD[0-9A-HJKMNP-TV-Z]{26}$/;
-export const providerIdPattern = /^(?:\d{1,30}|ORD[0-9A-HJKMNP-TV-Z]{26})$/;
-export const refundIdPattern = /^(?:\d{1,40}|REF[0-9A-HJKMNP-TV-Z]{26})$/;
+import {
+  orderIdPattern,
+  refundIdPattern,
+  isOrderIdForMode,
+} from "./provider-ids.ts";
+export {
+  orderIdPattern,
+  providerIdPattern,
+  refundIdPattern,
+} from "./provider-ids.ts";
 const paymentIdPattern = /^PAY[0-9A-HJKMNP-TV-Z]{26}$/;
 const bad = (code: ProviderFailureCode = "provider_order_response_invalid") =>
   new ProviderError(
@@ -149,7 +156,7 @@ export async function createPixOrder(
       !Array.isArray(found.data) ||
       found.data.length !== 1 ||
       Number(found.paging?.total) !== 1 ||
-      !orderIdPattern.test(found.data[0]?.id)
+      !isOrderIdForMode(found.data[0]?.id, config.mode)
     )
       throw error;
     const existing = await fetchVerifiedOrder(
@@ -164,7 +171,7 @@ export async function createPixOrder(
       throw bad();
     return { orderId: existing.payment.providerPaymentId };
   }
-  if (!raw || !orderIdPattern.test(raw.id))
+  if (!raw || !isOrderIdForMode(raw.id, config.mode))
     throw bad("provider_order_id_invalid");
   // Persist this ID even when the asynchronous POST has no payment/QR yet.
   return { orderId: raw.id as string };
@@ -179,7 +186,8 @@ export async function fetchVerifiedOrder(
   id: string,
   fetcher: typeof fetch = fetch,
 ): Promise<VerifiedOrder> {
-  if (!orderIdPattern.test(id)) throw bad("provider_order_id_invalid");
+  if (!isOrderIdForMode(id, config.mode))
+    throw bad("provider_order_id_invalid");
   await verifyOrderAccount(config, fetcher);
   const raw = await providerRequest(
     config,
@@ -365,4 +373,20 @@ export async function fetchVerifiedTransaction(
   return orderIdPattern.test(id)
     ? (await fetchVerifiedOrder(config, id, fetcher)).payment
     : fetchVerifiedPayment(config, id, fetcher);
+}
+
+// Recovery is a GET of a known order, never another create or idempotency key.
+export async function fetchOrderForCharge(
+  config: BillingConfig,
+  id: string,
+  charge: { id: string; amountCents: number },
+  fetcher: typeof fetch = fetch,
+) {
+  const result = await fetchVerifiedOrder(config, id, fetcher);
+  if (
+    result.payment.externalReference !== charge.id ||
+    result.payment.amountCents !== charge.amountCents
+  )
+    throw bad();
+  return result;
 }

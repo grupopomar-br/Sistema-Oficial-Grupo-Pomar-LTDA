@@ -5,6 +5,7 @@ import { todayDate } from "../domain/dates.ts";
 import type { BillingConfig } from "../config/billing.ts";
 import type { PixPayer } from "./pix-contract.ts";
 import type { ProviderFailureCode } from "./provider-diagnostics.ts";
+import { providerIdPattern } from "./provider-ids.ts";
 export class ProviderError extends Error {
   definitive: boolean;
   status?: number;
@@ -34,10 +35,7 @@ export function verifyMercadoPagoSignature(
 ): string {
   const url = new URL(request.url),
     ids = url.searchParams.getAll("data.id");
-  if (
-    ids.length !== 1 ||
-    !/^(?:\d{1,30}|ORD[0-9A-HJKMNP-TV-Z]{26})$/i.test(ids[0])
-  )
+  if (ids.length !== 1 || !providerIdPattern.test(ids[0].toUpperCase()))
     throw new ProviderError("Notificação inválida.", true);
   const requestId = request.headers.get("x-request-id") ?? "",
     signature = request.headers.get("x-signature") ?? "";

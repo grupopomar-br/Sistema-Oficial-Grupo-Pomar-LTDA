@@ -433,7 +433,7 @@ test("Orders conserva ID antes do QR, retoma a mesma order e exige data confirma
   assert.equal(
     (await db.query("select pomar_private.pix_checkout_capabilities() v"))
       .rows[0].v,
-    2,
+    3,
   );
   await db.query(
     "select pomar_private.pix_checkout_create($1,$2,$3,'987654321','live')",
@@ -460,6 +460,13 @@ test("Orders conserva ID antes do QR, retoma a mesma order e exige data confirma
   ).rows[0].v;
   assert.equal(again.expiration_seconds, begin.expiration_seconds);
   assert.equal(again.payer.email, payer.email);
+  await assert.rejects(
+    db.query("select pomar_private.pix_checkout_order($1,$2)", [
+      h,
+      "ORDTST01J49MMW3SSBK5PSV3DFR32959",
+    ]),
+    /POMAR_BAD_COMMAND/,
+  );
   await db.query("select pomar_private.pix_checkout_order($1,$2)", [h, oid]);
   let v = (await db.query("select pomar_private.pix_checkout_read($1) v", [h]))
     .rows[0].v;
@@ -673,3 +680,131 @@ for (const mode of ["test", "live"]) {
     });
   });
 }
+
+test("worker recupera ORDTST da mesma cobrança, conserva ID no DTO e nunca transforma sandbox em caixa", async () => {
+  const c = crypto.randomUUID(),
+    i = crypto.randomUUID(),
+    charge = crypto.randomUUID();
+  const t = randomBytes(32).toString("base64url"),
+    h = createHash("sha256").update(t).digest("hex");
+  const oid = "ORDTST01J49MMW3SSBK5PSV3DFR32957";
+  await admin();
+  await db.exec(`update pomar_private.billing_config set mode='test';begin;
+    insert into pomar_contracts(id,owner_id,title,client_id,total_cents,signed_on,status) values('${c}','${owner}','Contrato sandbox fictício','${client}',10001,current_date,'active');
+    insert into pomar_installments(id,owner_id,contract_id,sequence,amount_cents,due_on) values('${i}','${owner}','${c}',1,10001,current_date);commit;`);
+  const beforeCount = (
+    await db.query("select count(*)::integer n from pomar_receipts")
+  ).rows[0].n;
+  await actor();
+  await db.query("select pomar_prepare_charge($1,$2,24)", [charge, i]);
+  await worker();
+  await db.query(
+    "select pomar_private.pix_checkout_create($1,$2,$3,'987654321','test')",
+    [charge, h, `https://central.example.com/pagar/${t}`],
+  );
+  await db.query("select pomar_private.pix_checkout_begin($1,$2::jsonb)", [
+    h,
+    JSON.stringify(payer),
+  ]);
+  const event = {
+    provider_payment_id: oid,
+    external_reference: charge,
+    collector_id: "987654321",
+    mode: "test",
+    amount_cents: 10001,
+    refunded_cents: 0,
+    currency: "BRL",
+    status: "in_process",
+    paid_on: null,
+    provider_updated_at: new Date().toISOString(),
+    refunds: [],
+    refunds_complete: true,
+  };
+  // A response for another amount is never used to bind the private checkout.
+  await db.query("select pomar_billing_apply_payment($1::jsonb)", [
+    JSON.stringify({
+      ...event,
+      provider_payment_id: "ORDTST01J49MMW3SSBK5PSV3DFR32956",
+      amount_cents: 9999,
+    }),
+  ]);
+  assert.equal(
+    (await db.query("select pomar_private.pix_checkout_read($1) v", [h]))
+      .rows[0].v.provider_id,
+    null,
+  );
+  await withPostgresClient(db, async (sql) => {
+    await applyPaymentEvent(sql, event);
+    await applyPaymentEvent(sql, event);
+  });
+  let view = (
+    await db.query("select pomar_private.pix_checkout_read($1) v", [h])
+  ).rows[0].v;
+  assert.equal(view.provider_id, oid);
+  assert.equal(view.status, "processing");
+  await db.query(
+    "select pomar_private.pix_checkout_order_qr($1,$2,$3,null,$4)",
+    [h, oid, pixCode, view.expires_at],
+  );
+  assert.equal(
+    (await db.query("select pomar_private.pix_checkout_read($1) v", [h]))
+      .rows[0].v.status,
+    "pending",
+  );
+  await db.query("select pomar_billing_apply_payment($1::jsonb)", [
+    JSON.stringify({
+      ...event,
+      status: "approved",
+      paid_on: todayDate(),
+      provider_updated_at: new Date(Date.now() + 1000).toISOString(),
+    }),
+  ]);
+  view = (await db.query("select pomar_private.pix_checkout_read($1) v", [h]))
+    .rows[0].v;
+  assert.equal(view.status, "paid");
+  assert.equal(view.qr_code, null);
+  await assert.rejects(
+    db.query("select pomar_private.pix_checkout_order($1,$2)", [
+      h,
+      "ORDTST01J49MMW3SSBK5PSV3DFR32955",
+    ]),
+    /POMAR_BAD_COMMAND/,
+  );
+  await actor();
+  const state = parseWorkspace(
+    camelize((await db.query("select pomar_workspace() v")).rows[0].v),
+  );
+  assert.equal(
+    state.providerPayments.find((p) => p.providerPaymentId === oid).receiptId,
+    null,
+  );
+  assert.equal(state.receipts.length, beforeCount);
+  await admin();
+  const stored = (
+    await db.query(
+      "select payment_id,payer from pomar_private.pix_checkouts where token_hash=$1",
+      [h],
+    )
+  ).rows[0];
+  assert.equal(stored.payment_id, oid);
+  assert.equal(stored.payer, null);
+  assert.equal(
+    (
+      await db.query(
+        "select count(*)::integer n from pomar_provider_payments where provider_payment_id=$1",
+        [oid],
+      )
+    ).rows[0].n,
+    1,
+  );
+  await db.exec("update pomar_private.billing_config set mode='live'");
+  await worker();
+  await assert.rejects(
+    db.query("select pomar_billing_apply_payment($1::jsonb)", [
+      JSON.stringify({ ...event, mode: "live" }),
+    ]),
+    /POMAR_BAD_COMMAND/,
+  );
+  await admin();
+  await db.exec("update pomar_private.billing_config set mode='test'");
+});

@@ -26,12 +26,15 @@ O log público de operação `pix_checkout_operation_failed` conserva a mensagem
 
 ## Atualizar um Supabase já instalado
 
-Se a instalação tem as três migrações originais, aplicar manualmente estes dois incrementos, em ordem, no mesmo projeto da Central:
+Se a instalação tem as três migrações originais, aplicar manualmente estes incrementos, em ordem, no mesmo projeto da Central:
 
 1. `supabase/migrations/20261031204010_checkout_pix_pomar.sql`
 2. `supabase/migrations/20261031215612_checkout_pix_orders.sql`
+3. `supabase/migrations/20261101160648_checkout_pix_sandbox_ids.sql`
 
-Se o primeiro incremento já foi aplicado, executar apenas o segundo. Não reaplicar as três migrações de instalação anteriores. A migração cria uma tabela privada com RLS habilitado/forçado e funções específicas; não altera o estado desativado de cobrança.
+Executar somente os incrementos ainda não aplicados. Não reaplicar migrações anteriores. O terceiro aceita o namespace `ORDTST` retornado em teste, preserva o ID completo e atualiza a capacidade do checkout para versão 3. IDs `ORDTST` são recusados no modo live. O incremento conserva o modo e a configuração de ativação existentes, os grants restritos ao worker e o RLS habilitado/forçado.
+
+Se o Mercado Pago já respondeu `201 Created`, mas a Central registrou `provider_order_id_invalid`, não gerar outra order nem trocar a chave. Após aplicar o terceiro incremento e atualizar a aplicação, abrir **Cobranças → Conferir order existente** na parcela correspondente e colar somente o **Order ID** dos logs do provedor. A operação exige proprietário, sessão ativa e MFA recente, consulta a order por GET e confere conta, aplicação, ambiente, referência e valor antes de recuperar o vínculo. Um webhook válido também pode recuperar esse vínculo. Abrir o mesmo checkout e usar **Conferir pagamento** para buscar o estado e o QR atuais. `201` e `processing` não comprovam aprovação; sandbox continua sem baixa financeira.
 
 Conferência de estrutura, sem valores secretos:
 
@@ -48,7 +51,7 @@ select
 
 Esperado: RLS e RLS forçado `true`; as três permissões diretas `false`. O worker recebe somente USAGE do esquema e EXECUTE das funções delimitadas. Não conceder CRUD, superusuário ou `bypassrls`.
 
-Instalações novas devem aplicar as cinco migrações em ordem e depois cadastrar o proprietário conforme `CONFIGURACAO.md`.
+Instalações novas devem aplicar as seis migrações em ordem e depois cadastrar o proprietário conforme `CONFIGURACAO.md`.
 
 ## Configurar Mercado Pago e worker
 

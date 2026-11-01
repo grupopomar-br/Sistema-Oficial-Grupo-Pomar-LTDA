@@ -62,7 +62,7 @@ As funções privilegiadas usam `search_path` vazio, conferem `session_user`, co
 
 ## Configuração manual
 
-1. Conclua `CONFIGURACAO.md` e as cinco migrações em um projeto novo de homologação. A aplicação funciona sem ativar a integração.
+1. Conclua `CONFIGURACAO.md` e as seis migrações em um projeto novo de homologação. A aplicação funciona sem ativar a integração.
 2. Crie/configure a aplicação de pagamentos na conta escolhida do Mercado Pago e confirme o uso de testes, os meios disponíveis e os requisitos da conta. Tarifas e habilitações devem ser conferidas na própria conta.
 3. Configure Webhooks para o evento **Order (Mercado Pago)**, com HTTPS, apontando para `ORIGEM/api/webhooks/mercadopago`. Use Webhooks, não IPN.
 4. Guarde Access Token e segredo do webhook no ambiente privado do servidor. Nunca em variáveis `NEXT_PUBLIC_`, Git, mensagens ou capturas.
