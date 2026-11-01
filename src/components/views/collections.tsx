@@ -35,7 +35,11 @@ import { money, fullDate, todayDate } from "@/lib/domain/dates";
 import { parseBRL } from "@/lib/domain/finance";
 import type { CollectionAgreement } from "@/lib/domain/extensions";
 type Row = ReturnType<typeof collectionSummary>["rows"][number];
-type Dialog = { kind: "terms" | "contact" | "message" | "link"; row: Row };
+type Dialog = {
+  kind: "terms" | "contact" | "message" | "link" | "recover";
+  row: Row;
+  chargeId?: string;
+};
 export default function Collections(props: ViewProps) {
   const { state, mode, reload } = useWorkspace();
   const [query, setQuery] = useState(""),
@@ -359,6 +363,16 @@ export default function Collections(props: ViewProps) {
                   )}
                 </div>
                 <div className="collection-card-actions">
+                  {link?.status === "ready" && mode === "cloud" && (
+                    <Button
+                      onClick={() =>
+                        setDialog({ kind: "recover", row, chargeId: link.id })
+                      }
+                      disabled={!integration.enabled}
+                    >
+                      Conferir order existente
+                    </Button>
+                  )}
                   <Button onClick={() => setDialog({ kind: "message", row })}>
                     <Copy size={15} />
                     Preparar mensagem
@@ -571,6 +585,29 @@ function CollectionDialog({
           )
         )
           onClose();
+      } else if (dialog.kind === "recover") {
+        setBusy(true);
+        const response = await fetch("/api/billing/reconcile", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            chargeId: dialog.chargeId,
+            paymentId: text("orderId"),
+          }),
+        });
+        const data = await response.json();
+        if (response.status === 401)
+          window.location.replace("/entrar?motivo=sessao");
+        if (!response.ok) {
+          setMfa(
+            data.code === "MFA_REQUIRED" ||
+              String(data.error).includes("autenticador"),
+          );
+          throw new Error(data.error ?? "Não foi possível conferir a order.");
+        }
+        parseWorkspace(data.workspace);
+        onUpdated();
+        onClose();
       } else {
         setBusy(true);
         const response = await fetch("/api/billing/charges", {
@@ -611,7 +648,9 @@ function CollectionDialog({
           ? "Condições de pagamento e entrega"
           : dialog.kind === "contact"
             ? "Registrar acompanhamento"
-            : "Gerar link Pix Grupo Pomar"
+            : dialog.kind === "recover"
+              ? "Conferir order existente"
+              : "Gerar link Pix Grupo Pomar"
       }
       subtitle={`${dialog.row.contract.title} · ${dialog.row.client?.name ?? "Cliente"}`}
       onClose={onClose}
@@ -713,6 +752,28 @@ function CollectionDialog({
               />
             </Field>
           </div>
+        ) : dialog.kind === "recover" ? (
+          <>
+            <div className="inline-note">
+              Informe o Order ID exibido nos logs do Mercado Pago. A consulta
+              confere a conta, o ambiente, a referência e o valor desta
+              cobrança.
+            </div>
+            <Field label="Order ID do Mercado Pago">
+              <input
+                name="orderId"
+                placeholder="ORD…"
+                maxLength={32}
+                required
+                autoComplete="off"
+                spellCheck={false}
+              />
+            </Field>
+            <p className="helper-text">
+              Esta operação consulta a order existente. Após conferir, abra o
+              mesmo checkout para atualizar o pagamento.
+            </p>
+          </>
         ) : (
           <>
             <div className="payment-summary">
@@ -759,7 +820,9 @@ function CollectionDialog({
             ? "Salvar condições"
             : dialog.kind === "contact"
               ? "Salvar acompanhamento"
-              : "Gerar link seguro",
+              : dialog.kind === "recover"
+                ? "Consultar e recuperar"
+                : "Gerar link seguro",
         )}
       </form>
     </Modal>

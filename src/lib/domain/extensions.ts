@@ -4,6 +4,7 @@ import {
   isSafePomarCheckoutUrl,
 } from "../billing/safety.ts";
 import { isDateOnly } from "./dates.ts";
+import { providerIdPattern } from "../billing/provider-ids.ts";
 const id = z.uuid(),
   timestamp = z.iso.datetime({ offset: true });
 const date = z.string().refine(isDateOnly, "Data inválida.");
@@ -82,9 +83,7 @@ export const chargeSchema = z.strictObject({
 export const providerPaymentSchema = z.strictObject({
   ...base,
   provider: z.literal("mercadopago"),
-  providerPaymentId: z
-    .string()
-    .regex(/^(?:\d{1,30}|ORD[0-9A-HJKMNP-TV-Z]{26})$/),
+  providerPaymentId: z.string().regex(providerIdPattern),
   chargeId: id.nullable(),
   receiptId: id.nullable(),
   amountCents: cents.positive(),

@@ -21,7 +21,7 @@ export async function pixWorkerReady(config: BillingConfig) {
   const sql = billingDatabase(config);
   const rows =
     await sql`select pomar_private.pix_checkout_capabilities() as version`;
-  return rows[0]?.version === 2;
+  return rows[0]?.version === 3;
 }
 export async function attachPixCheckout(
   config: BillingConfig,
@@ -69,6 +69,8 @@ export async function generatePix(
   payer: PixPayer,
 ) {
   if (!checkoutTokenPattern.test(token)) return null;
+  if (!(await pixWorkerReady(config)))
+    throw new Error("As migrações do checkout precisam ser atualizadas.");
   const sql = billingDatabase(config);
   const row = await beginPixAttempt(sql, hash(token), payer);
   if (row?.create === true) {

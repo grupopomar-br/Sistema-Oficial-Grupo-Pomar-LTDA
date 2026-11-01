@@ -6,8 +6,13 @@ import {
   fetchVerifiedOrder,
   fetchVerifiedTransaction,
   verifyOrderAccount,
+  fetchOrderForCharge,
 } from "../src/lib/billing/orders.ts";
 import { verifyMercadoPagoSignature } from "../src/lib/billing/mercadopago.ts";
+import {
+  isOrderIdForMode,
+  providerIdPattern,
+} from "../src/lib/billing/provider-ids.ts";
 const config = {
   enabled: true,
   mode: "test",
@@ -94,6 +99,119 @@ const approved = (extra = {}) => {
     ...extra,
   };
 };
+
+test("namespace ORDTST é preservado em criação, GET e HMAC sem aceitar formato arbitrário ou ambiente live", async () => {
+  const testId = `ORDTST${id.slice(3)}`;
+  assert.equal(testId.length, 32);
+  assert.equal(isOrderIdForMode(testId, "test"), true);
+  assert.equal(isOrderIdForMode(testId, "live"), false);
+  for (const invalid of [
+    `${testId}A`,
+    testId.slice(0, -1),
+    testId.replace("TST", "FAKE"),
+    "ORDTST" + "I".repeat(26),
+    testId.toLowerCase(),
+    123,
+  ])
+    assert.equal(isOrderIdForMode(invalid, "test"), false);
+  assert.equal(providerIdPattern.test("123456"), true);
+  const methods = [];
+  const f = async (url, init) => {
+    methods.push(init.method);
+    return Response.json(url.endsWith("/users/me") ? account : { id: testId });
+  };
+  assert.deepEqual(await createPixOrder(config, charge, payer, f), {
+    orderId: testId,
+  });
+  assert.deepEqual(methods, ["GET", "POST"]);
+  const order = raw({ id: testId });
+  assert.equal(
+    (await fetchVerifiedOrder(config, testId, fetcherFor(order))).payment
+      .providerPaymentId,
+    testId,
+  );
+  assert.equal(
+    (await fetchVerifiedTransaction(config, testId, fetcherFor(order)))
+      .providerPaymentId,
+    testId,
+  );
+  let called = false;
+  await assert.rejects(
+    fetchVerifiedOrder({ ...config, mode: "live" }, testId, async () => {
+      called = true;
+      throw Error();
+    }),
+  );
+  assert.equal(called, false);
+  const ts = String(Math.floor(Date.now() / 1000)),
+    secret = "s".repeat(40),
+    requestId = "req-sandbox-order";
+  const mac = createHmac("sha256", secret)
+    .update(`id:${testId.toLowerCase()};request-id:${requestId};ts:${ts};`)
+    .digest("hex");
+  for (const value of [testId, testId.toLowerCase()]) {
+    const req = new Request(
+      `https://central.example.com/api/webhooks/mercadopago?data.id=${value}`,
+      {
+        headers: {
+          "x-signature": `ts=${ts},v1=${mac}`,
+          "x-request-id": requestId,
+        },
+      },
+    );
+    assert.equal(verifyMercadoPagoSignature(req, secret), testId);
+    assert.throws(() =>
+      verifyMercadoPagoSignature(
+        new Request(req.url.replace(/tst/i, ""), { headers: req.headers }),
+        secret,
+      ),
+    );
+  }
+});
+
+test("recuperação da order conhecida usa somente GET e exige referência, valor, conta, aplicação e ambiente", async () => {
+  const testId = `ORDTST${id.slice(3)}`;
+  const calls = [];
+  const order = raw({
+    id: testId,
+    status: "processing",
+    status_detail: "in_process",
+    transactions: { payments: [] },
+  });
+  const f = async (url, init) => {
+    calls.push([url, init.method]);
+    return Response.json(url.endsWith("/users/me") ? account : order);
+  };
+  const result = await fetchOrderForCharge(config, testId, charge, f);
+  assert.equal(result.payment.status, "in_process");
+  assert.equal(result.qr, null);
+  assert.deepEqual(
+    calls.map((c) => c[1]),
+    ["GET", "GET"],
+  );
+  assert.equal(calls[1][0], `https://api.mercadopago.com/v1/orders/${testId}`);
+  for (const change of [
+    { id: "22222222-2222-4222-8222-222222222222" },
+    { amountCents: 9999 },
+  ])
+    await assert.rejects(
+      fetchOrderForCharge(config, testId, { ...charge, ...change }, f),
+    );
+  for (const change of [
+    { user_id: "123" },
+    { integration_data: { application_id: "999" } },
+    { live_mode: true },
+    { country_code: "ARG" },
+  ])
+    await assert.rejects(
+      fetchOrderForCharge(
+        config,
+        testId,
+        charge,
+        fetcherFor({ ...order, ...change }),
+      ),
+    );
+});
 
 test("Orders cria somente Pix, usa valor em string e repete exatamente o corpo/chave", async () => {
   const posts = [];
