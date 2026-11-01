@@ -3,6 +3,7 @@ import type { BillingConfig } from "../config/billing.ts";
 import type { PixPayer } from "./pix-contract.ts";
 import { decimalCents } from "./safety.ts";
 import { todayDate } from "../domain/dates.ts";
+import type { ProviderFailureCode } from "./provider-diagnostics.ts";
 import {
   ProviderError,
   providerRequest,
@@ -16,8 +17,13 @@ export const orderIdPattern = /^ORD[0-9A-HJKMNP-TV-Z]{26}$/;
 export const providerIdPattern = /^(?:\d{1,30}|ORD[0-9A-HJKMNP-TV-Z]{26})$/;
 export const refundIdPattern = /^(?:\d{1,40}|REF[0-9A-HJKMNP-TV-Z]{26})$/;
 const paymentIdPattern = /^PAY[0-9A-HJKMNP-TV-Z]{26}$/;
-const bad = () =>
-  new ProviderError("Os dados da order não passaram na conferência.", true);
+const bad = (code: ProviderFailureCode = "provider_order_response_invalid") =>
+  new ProviderError(
+    "Os dados da order não passaram na conferência.",
+    true,
+    undefined,
+    code,
+  );
 const money = (value: unknown) => {
   if (typeof value !== "string" || !/^\d{1,10}\.\d{2}$/.test(value))
     throw bad();
@@ -45,14 +51,18 @@ export async function verifyOrderAccount(
     undefined,
     5000,
   );
+  if (!user || typeof user !== "object" || Array.isArray(user))
+    throw bad("provider_account_invalid");
+  if (String(user.id) !== config.collectorId)
+    throw bad("provider_collector_mismatch");
+  if (user.site_id !== "MLB") throw bad("provider_country_mismatch");
   if (
-    String(user.id) !== config.collectorId ||
-    user.site_id !== "MLB" ||
     !Array.isArray(user.tags) ||
-    !user.tags.every((t: unknown) => typeof t === "string") ||
-    user.tags.includes("test_user") !== (config.mode === "test")
+    !user.tags.every((t: unknown) => typeof t === "string")
   )
-    throw bad();
+    throw bad("provider_environment_unverified");
+  if (user.tags.includes("test_user") !== (config.mode === "test"))
+    throw bad("provider_environment_mismatch");
 }
 
 export async function createPixOrder(
@@ -72,7 +82,7 @@ export async function createPixOrder(
     !Number.isFinite(Date.parse(charge.createdAt)) ||
     new Date(charge.expiresAt).valueOf() <= Date.now()
   )
-    throw bad();
+    throw bad("provider_charge_invalid");
   // This check runs before a POST that could create a real payment.
   await verifyOrderAccount(config, fetcher);
   const names = payer.name.split(/\s+/);
@@ -154,7 +164,8 @@ export async function createPixOrder(
       throw bad();
     return { orderId: existing.payment.providerPaymentId };
   }
-  if (!orderIdPattern.test(raw.id)) throw bad();
+  if (!raw || !orderIdPattern.test(raw.id))
+    throw bad("provider_order_id_invalid");
   // Persist this ID even when the asynchronous POST has no payment/QR yet.
   return { orderId: raw.id as string };
 }
@@ -168,7 +179,7 @@ export async function fetchVerifiedOrder(
   id: string,
   fetcher: typeof fetch = fetch,
 ): Promise<VerifiedOrder> {
-  if (!orderIdPattern.test(id)) throw bad();
+  if (!orderIdPattern.test(id)) throw bad("provider_order_id_invalid");
   await verifyOrderAccount(config, fetcher);
   const raw = await providerRequest(
     config,
@@ -179,19 +190,22 @@ export async function fetchVerifiedOrder(
     undefined,
     5000,
   );
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) throw bad();
+  if (raw.id !== id) throw bad("provider_order_id_invalid");
+  if (String(raw.user_id) !== config.collectorId)
+    throw bad("provider_order_collector_mismatch");
+  if (String(raw.integration_data?.application_id) !== config.applicationId)
+    throw bad("provider_application_mismatch");
+  if (raw.country_code !== "BRA") throw bad("provider_order_country_mismatch");
   if (
-    raw.id !== id ||
-    String(raw.user_id) !== config.collectorId ||
-    String(raw.integration_data?.application_id) !== config.applicationId ||
-    raw.country_code !== "BRA" ||
     (raw.currency !== undefined && raw.currency !== "BRL") ||
-    (raw.currency_id !== undefined && raw.currency_id !== "BRL") ||
-    (raw.live_mode !== undefined &&
-      raw.live_mode !== (config.mode === "live")) ||
-    raw.type !== "online" ||
-    raw.processing_mode !== "automatic"
+    (raw.currency_id !== undefined && raw.currency_id !== "BRL")
   )
-    throw bad();
+    throw bad("provider_order_currency_mismatch");
+  if (raw.live_mode !== undefined && raw.live_mode !== (config.mode === "live"))
+    throw bad("provider_order_environment_mismatch");
+  if (raw.type !== "online" || raw.processing_mode !== "automatic")
+    throw bad("provider_order_type_mismatch");
   const amountCents = money(raw.total_amount),
     updated = instant(raw.last_updated_date);
   if (amountCents <= 0) throw bad();

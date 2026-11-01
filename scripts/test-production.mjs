@@ -74,10 +74,12 @@ try {
     });
     assert.equal(response.status, 503, path);
   }
-  const status = await fetch(origin + "/api/billing/status");
-  assert.equal(status.status, 503);
-  // Readiness details remain behind the owner/session/MFA check.
-  assert.equal((await status.json()).code, undefined);
+  for (const path of ["/api/billing/status", "/api/billing/provider-status"]) {
+    const status = await fetch(origin + path);
+    assert.equal(status.status, 503);
+    // Readiness details remain behind the owner/session/MFA check.
+    assert.equal((await status.json()).code, undefined);
+  }
   const callback = await fetch(
     origin + "/pagamento/retorno?status=approved&payment_id=123",
   );
