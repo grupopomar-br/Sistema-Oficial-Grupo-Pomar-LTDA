@@ -8,6 +8,14 @@ O cliente abre uma página independente com a identidade do Grupo Pomar, confere
 
 O valor é o saldo da parcela, definido pelo proprietário. O comprador não pode editar o valor, recebedor, referência, ambiente ou validade pelo navegador. Escolha livre de valor e seleção de múltiplas parcelas são evoluções que exigem uma regra comercial explícita.
 
+## Diagnosticar a conexão
+
+Com a sessão do proprietário e MFA, abrir `/api/billing/status`. A resposta inclui `enabled`, `mode`, um `code` estável e uma mensagem fixa. Falhas informam a etapa pendente: configuração da hospedagem, cadastro no banco, ambiente, vínculo do worker, migrações Pix, certificado TLS, autenticação, permissões ou rede. Respostas pendentes usam HTTP 503, exceto integração intencionalmente desativada. A tela de Cobranças mantém a criação bloqueada.
+
+Em `configuration_invalid`, `fields` contém somente nomes conhecidos de variáveis. Nunca retornar nem registrar senha, token, URI, consulta ou o erro original do driver. O log `billing_readiness` contém apenas o código reconhecido. A rota exige o mesmo proprietário, sessão e MFA antes de projetar esse diagnóstico; requisições sem autorização conservam o erro de acesso anterior.
+
+`worker_certificate_untrusted` exige conferir a CA oficial do Supabase e `POMAR_BILLING_DB_CA_BASE64`; não desabilitar a verificação TLS. `worker_authentication_failed` exige revisar privadamente usuário/senha do worker. `ready` confirma as verificações de conexão e configuração, não a homologação de pagamentos ou webhooks no Mercado Pago.
+
 ## Prévia visual
 
 `/pagamento/visualizar` funciona sem credenciais. A faixa **PRÉVIA VISUAL** permanece visível. O botão **Ver aparência do Pix** mostra o segundo estado, com um marcador ilustrativo e sem código pagável. Essa página não faz chamadas de criação e não gera recebimentos. O valor de exemplo é fictício.
