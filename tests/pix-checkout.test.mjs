@@ -7,8 +7,13 @@ import { createPixPayment } from "../src/lib/billing/mercadopago.ts";
 import { pixPayerSchema, validTaxId } from "../src/lib/billing/pix-contract.ts";
 import { isSafePomarCheckoutUrl } from "../src/lib/billing/safety.ts";
 import { parseWorkspace } from "../src/lib/domain/workspace.ts";
-import { camelize } from "../src/lib/domain/transport.ts";
+import { camelize, databaseCommand } from "../src/lib/domain/transport.ts";
 import { todayDate } from "../src/lib/domain/dates.ts";
+import {
+  beginPixAttempt,
+  applyPaymentEvent,
+} from "../src/lib/billing/worker-queries.ts";
+import { withPostgresClient } from "./helpers/postgres-wire.mjs";
 
 const owner = "11111111-1111-4111-8111-111111111111",
   other = "22222222-2222-4222-8222-222222222222";
@@ -574,3 +579,97 @@ test("Orders conserva ID antes do QR, retoma a mesma order e exige data confirma
   );
   assert.equal(state.refunds.length, 0);
 });
+
+for (const mode of ["test", "live"]) {
+  test(`Postgres.js envia objetos JSONB ao iniciar e confirmar Pix ${mode}, sem duplicar caixa`, async () => {
+    const c = crypto.randomUUID(),
+      i = crypto.randomUUID(),
+      charge = crypto.randomUUID(),
+      t = randomBytes(32).toString("base64url"),
+      h = createHash("sha256").update(t).digest("hex"),
+      oid =
+        mode === "test"
+          ? "ORD01J49MMW3SSBK5PSV3DFR32950"
+          : "ORD01J49MMW3SSBK5PSV3DFR32951";
+    await admin();
+    await db.query(
+      "update pomar_private.billing_config set enabled=true,mode=$1",
+      [mode],
+    );
+    await db.exec(`begin;
+      insert into pomar_contracts(id,owner_id,title,client_id,total_cents,signed_on,status) values('${c}','${owner}','Contrato fictício do driver','${client}',5000,current_date,'active');
+      insert into pomar_installments(id,owner_id,contract_id,sequence,amount_cents,due_on) values('${i}','${owner}','${c}',1,5000,current_date);commit;`);
+    await actor();
+    await db.query("select pomar_prepare_charge($1,$2,24)", [charge, i]);
+    await worker();
+    await db.query(
+      "select pomar_private.pix_checkout_create($1,$2,$3,'987654321',$4)",
+      [charge, h, `https://central.example.com/pagar/${t}`, mode],
+    );
+    await withPostgresClient(db, async (sql) => {
+      // Reproduce the former production path, including PostgreSQL's parameter
+      // type discovery. PGlite.query alone does not run Postgres.js serializers.
+      assert.equal(
+        (
+          await sql`select jsonb_typeof(${JSON.stringify(payer)}::jsonb) as kind`
+        )[0].kind,
+        "string",
+      );
+      await assert.rejects(
+        sql`select pomar_private.pix_checkout_begin(${h},${JSON.stringify(payer)}::jsonb)`,
+        (error) =>
+          error.code === "22023" && error.message === "POMAR_BAD_COMMAND",
+      );
+      const attempt = await beginPixAttempt(sql, h, payer);
+      assert.equal(attempt.create, true);
+      assert.deepEqual(attempt.payer, payer);
+      assert.ok(attempt.expiration_seconds >= 1800);
+      await sql`select pomar_private.pix_checkout_order(${h},${oid})`;
+      const payment = {
+        providerPaymentId: oid,
+        externalReference: charge,
+        collectorId: "987654321",
+        mode,
+        amountCents: 5000,
+        feeCents: null,
+        refundedCents: 0,
+        currency: "BRL",
+        status: "approved",
+        paidOn: todayDate(),
+        providerUpdatedAt: new Date().toISOString(),
+        refunds: [],
+        refundsComplete: true,
+      };
+      await assert.rejects(
+        sql`select public.pomar_billing_apply_payment(${JSON.stringify(databaseCommand(payment))}::jsonb)`,
+        (error) =>
+          error.code === "42501" && error.message === "POMAR_WORKER_ACCESS",
+      );
+      assert.deepEqual(await applyPaymentEvent(sql, payment), {
+        duplicate: false,
+        review: false,
+      });
+      assert.deepEqual(await applyPaymentEvent(sql, payment), {
+        duplicate: true,
+      });
+      const view = (
+        await sql`select pomar_private.pix_checkout_read(${h}) as checkout`
+      )[0].checkout;
+      assert.equal(view.status, "paid");
+      assert.equal(view.qr_code, null);
+    });
+    await admin();
+    const totals = (
+      await db.query(
+        `select count(*)::integer as receipts,coalesce(sum(a.amount_cents),0)::integer as cents
+         from pomar_allocations a join pomar_receipts r on r.id=a.receipt_id
+         where a.installment_id=$1 and r.status='confirmed'`,
+        [i],
+      )
+    ).rows[0];
+    assert.deepEqual(totals, {
+      receipts: mode === "live" ? 1 : 0,
+      cents: mode === "live" ? 5000 : 0,
+    });
+  });
+}

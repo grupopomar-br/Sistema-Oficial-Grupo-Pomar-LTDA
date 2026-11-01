@@ -2,7 +2,7 @@ import "server-only";
 import postgres from "postgres";
 import type { BillingConfig } from "../config/billing";
 import type { VerifiedPayment } from "../billing/mercadopago";
-import { databaseCommand } from "../domain/transport";
+import { applyPaymentEvent } from "../billing/worker-queries";
 let pool: { key: string; sql: ReturnType<typeof postgres> } | undefined;
 export function billingDatabase(config: BillingConfig) {
   const key = config.databaseUrl + "\n" + (config.databaseCa ?? "");
@@ -47,9 +47,7 @@ export async function applyVerifiedPayment(
   payment: VerifiedPayment & { ownerConfirmedBy?: string },
 ) {
   const sql = billingDatabase(config);
-  const result =
-    await sql`select public.pomar_billing_apply_payment(${JSON.stringify(databaseCommand(payment))}::jsonb) as result`;
-  return result[0]?.result;
+  return applyPaymentEvent(sql, payment);
 }
 
 export async function billingWorkerReady(

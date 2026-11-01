@@ -2,6 +2,7 @@ import "server-only";
 import { createHash, randomBytes } from "node:crypto";
 import { parseBillingConfig, type BillingConfig } from "../config/billing";
 import { billingDatabase, applyVerifiedPayment } from "./billing-worker";
+import { beginPixAttempt } from "../billing/worker-queries";
 import {
   createPixOrder,
   fetchVerifiedOrder,
@@ -69,9 +70,7 @@ export async function generatePix(
 ) {
   if (!checkoutTokenPattern.test(token)) return null;
   const sql = billingDatabase(config);
-  const rows =
-    await sql`select pomar_private.pix_checkout_begin(${hash(token)},${JSON.stringify(payer)}::jsonb) as checkout`;
-  const row = rows[0]?.checkout;
+  const row = await beginPixAttempt(sql, hash(token), payer);
   if (row?.create === true) {
     if (row.mode !== config.mode || row.collector_id !== config.collectorId)
       throw new Error("Ambiente divergente.");
