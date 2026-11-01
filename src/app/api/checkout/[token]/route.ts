@@ -7,6 +7,7 @@ import {
 import { parseBillingConfig } from "@/lib/config/billing";
 import { requireOrigin, AccessError } from "@/lib/server/access";
 import { ProviderError } from "@/lib/billing/mercadopago";
+import { providerErrorDetails } from "@/lib/billing/provider-diagnostics";
 import { boundedJson, json } from "@/lib/server/http";
 import {
   checkoutTokenPattern,
@@ -78,9 +79,7 @@ export async function POST(request: Request, context: Context) {
       JSON.stringify({
         event: "pix_checkout_operation_failed",
         stage: error instanceof ProviderError ? "provider" : "storage",
-        ...(error instanceof ProviderError
-          ? { status: error.status, definitive: error.definitive }
-          : {}),
+        ...(error instanceof ProviderError ? providerErrorDetails(error) : {}),
       }),
     );
     return json(

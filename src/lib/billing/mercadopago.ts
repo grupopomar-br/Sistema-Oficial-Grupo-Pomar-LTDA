@@ -4,17 +4,21 @@ import { decimalCents, isSafeCheckoutUrl } from "./safety.ts";
 import { todayDate } from "../domain/dates.ts";
 import type { BillingConfig } from "../config/billing.ts";
 import type { PixPayer } from "./pix-contract.ts";
+import type { ProviderFailureCode } from "./provider-diagnostics.ts";
 export class ProviderError extends Error {
   definitive: boolean;
   status?: number;
+  code?: ProviderFailureCode;
   constructor(
     message = "Não foi possível confirmar a operação com o provedor.",
     definitive = false,
     status?: number,
+    code?: ProviderFailureCode,
   ) {
     super(message);
     this.definitive = definitive;
     this.status = status;
+    this.code = code;
   }
 }
 const opaqueId = (value: unknown) => {
@@ -95,6 +99,11 @@ export async function providerRequest(
         response.status < 500 &&
         ![408, 429].includes(response.status),
       response.status,
+      response.status >= 400 &&
+        response.status < 500 &&
+        ![408, 429].includes(response.status)
+        ? "provider_http_rejected"
+        : "provider_http_unavailable",
     );
   const reader = response.body?.getReader();
   if (!reader) throw new ProviderError();

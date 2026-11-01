@@ -16,6 +16,10 @@ Em `configuration_invalid`, `fields` contém somente nomes conhecidos de variáv
 
 `worker_certificate_untrusted` exige conferir a CA oficial do Supabase e `POMAR_BILLING_DB_CA_BASE64`; não desabilitar a verificação TLS. `worker_authentication_failed` exige revisar privadamente usuário/senha do worker. `ready` confirma as verificações de conexão e configuração, não a homologação de pagamentos ou webhooks no Mercado Pago.
 
+Para conferir especificamente a conta autenticada no Mercado Pago, abrir `/api/billing/provider-status` na mesma sessão do proprietário com MFA. Essa rota faz somente `GET /users/me`; não cria order, não acessa pagador e não altera a cobrança. Os códigos distinguem recebedor divergente, país, ambiente divergente ou não verificável e falha HTTP. A resposta contém somente códigos, mensagens fixas, modo e status/definitive quando aplicáveis, sem identificadores de conta, perfil ou credenciais. `provider_ready` confirma essa conta e ambiente, e mantém pendente a homologação de criação e pagamento.
+
+O log público de operação `pix_checkout_operation_failed` conserva a mensagem genérica ao pagador e acrescenta somente um `code` de uma lista fixa ao diagnóstico técnico. Falhas de validação do adaptador podem ter `definitive=true` sem `status`: isso não comprova recusa HTTP do Mercado Pago. O código distingue os dados reservados da cobrança, o perfil autenticado e as conferências da order. Não retornar corpos do provedor, campos de perfil ou erros brutos para ampliar o diagnóstico.
+
 ## Prévia visual
 
 `/pagamento/visualizar` funciona sem credenciais. A faixa **PRÉVIA VISUAL** permanece visível. O botão **Ver aparência do Pix** mostra o segundo estado, com um marcador ilustrativo e sem código pagável. Essa página não faz chamadas de criação e não gera recebimentos. O valor de exemplo é fictício.
