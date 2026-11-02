@@ -130,3 +130,4 @@ try {
   child.kill("SIGTERM");
   await once(child, "exit").catch(() => {});
 }
+await import("./test-webhook-production.mjs");

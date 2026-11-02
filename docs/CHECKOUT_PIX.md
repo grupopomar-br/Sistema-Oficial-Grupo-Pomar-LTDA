@@ -20,6 +20,26 @@ Para conferir especificamente a conta autenticada no Mercado Pago, abrir `/api/b
 
 O log público de operação `pix_checkout_operation_failed` conserva a mensagem genérica ao pagador e acrescenta somente um `code` de uma lista fixa ao diagnóstico técnico. Falhas de validação do adaptador podem ter `definitive=true` sem `status`: isso não comprova recusa HTTP do Mercado Pago. O código distingue os dados reservados da cobrança, o perfil autenticado e as conferências da order. Não retornar corpos do provedor, campos de perfil ou erros brutos para ampliar o diagnóstico.
 
+### Diagnosticar HTTP 401 do webhook
+
+A rota mantém a resposta pública genérica `401 {"received":false}`. O log de aviso `billing_webhook_auth_rejected`, com `stage=authentication`, distingue a razão sem registrar ID de recurso, URL, corpo, cabeçalhos, assinatura, token, senha ou erro bruto:
+
+| Código                                                      | Conferência necessária                                                                                                                                                                       |
+| ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `webhook_data_id_missing` / `webhook_data_id_invalid`       | Presença única e formato de `data.id` na query; o ID do corpo não substitui o parâmetro autenticado.                                                                                         |
+| `webhook_request_id_missing` / `webhook_request_id_invalid` | Presença e formato de `x-request-id`.                                                                                                                                                        |
+| `webhook_signature_missing`                                 | Presença de `x-signature`.                                                                                                                                                                   |
+| `webhook_signature_invalid` / `webhook_timestamp_invalid`   | Formato do cabeçalho, campos `ts` e `v1`, sem expor seus valores.                                                                                                                            |
+| `webhook_timestamp_future`                                  | Timestamp superior à tolerância de cinco minutos no futuro.                                                                                                                                  |
+| `webhook_signature_mismatch`                                | O HMAC calculado diverge da assinatura recebida. Conferir privadamente a assinatura secreta da mesma aplicação/ambiente e o manifest; esse código isolado não prova que a chave está errada. |
+| `webhook_auth_unavailable`                                  | Falha não classificada; conserva a recusa e não serializa o erro original.                                                                                                                   |
+
+Consultar o log da tentativa **posterior à publicação** dessa instrumentação, incluindo avisos no filtro de níveis. Um evento antigo que continua mostrando 401 não comprova falha da versão atual; o horário de criação não necessariamente identifica a última tentativa de entrega. Sem requisição registrada ou sem corpo HTTP da resposta, não atribuir o erro à chave ou à aplicação; distinguir primeiro o painel de simulação, a hospedagem e o handler.
+
+No Mercado Pago, em **Teste → Início → Webhooks**, o reenvio é acionado marcando a notificação **na tabela** e clicando em **Reenviar notificações**. Abrir o detalhe da linha somente mostra suas informações. O simulador fica em **Configuração de webhooks → Simular notificação**, com evento Order e o ID da order existente. Se o painel não mostrar resultado, conferir o envio no monitoramento ou a requisição do navegador antes de repetir configurações.
+
+Referência: [notificações de Orders](https://www.mercadopago.com.br/developers/pt/docs/checkout-api-orders/notifications). Os códigos distinguem falhas observadas; não removem a comparação HMAC, não habilitam modo live e não substituem a consulta autenticada e a deduplicação no banco.
+
 ## Prévia visual
 
 `/pagamento/visualizar` funciona sem credenciais. A faixa **PRÉVIA VISUAL** permanece visível. O botão **Ver aparência do Pix** mostra o segundo estado, com um marcador ilustrativo e sem código pagável. Essa página não faz chamadas de criação e não gera recebimentos. O valor de exemplo é fictício.

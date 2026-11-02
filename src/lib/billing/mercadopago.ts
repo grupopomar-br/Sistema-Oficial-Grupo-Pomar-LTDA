@@ -22,6 +22,36 @@ export class ProviderError extends Error {
     this.code = code;
   }
 }
+const webhookAuthCodes = [
+  "webhook_data_id_missing",
+  "webhook_data_id_invalid",
+  "webhook_request_id_missing",
+  "webhook_request_id_invalid",
+  "webhook_signature_missing",
+  "webhook_signature_invalid",
+  "webhook_timestamp_invalid",
+  "webhook_timestamp_future",
+  "webhook_signature_mismatch",
+] as const;
+export class WebhookAuthError extends ProviderError {
+  readonly authCode: (typeof webhookAuthCodes)[number];
+  constructor(authCode: (typeof webhookAuthCodes)[number]) {
+    super("Notificação não autenticada.", true);
+    this.authCode = authCode;
+  }
+}
+// Return only a fixed reason, never a URL, ID, header, signature or raw error.
+export function webhookAuthRejection(error: unknown) {
+  return {
+    event: "billing_webhook_auth_rejected" as const,
+    stage: "authentication" as const,
+    code:
+      error instanceof WebhookAuthError &&
+      webhookAuthCodes.includes(error.authCode)
+        ? error.authCode
+        : "webhook_auth_unavailable",
+  };
+}
 const opaqueId = (value: unknown) => {
   const id = String(value ?? "");
   if (!/^\d{1,40}$/.test(id))
@@ -35,33 +65,34 @@ export function verifyMercadoPagoSignature(
 ): string {
   const url = new URL(request.url),
     ids = url.searchParams.getAll("data.id");
+  if (ids.length === 0) throw new WebhookAuthError("webhook_data_id_missing");
   if (ids.length !== 1 || !providerIdPattern.test(ids[0].toUpperCase()))
-    throw new ProviderError("Notificação inválida.", true);
+    throw new WebhookAuthError("webhook_data_id_invalid");
   const requestId = request.headers.get("x-request-id") ?? "",
     signature = request.headers.get("x-signature") ?? "";
-  if (!/^[A-Za-z0-9_-]{1,160}$/.test(requestId) || signature.length > 300)
-    throw new ProviderError("Assinatura inválida.", true);
+  if (!requestId) throw new WebhookAuthError("webhook_request_id_missing");
+  if (!/^[A-Za-z0-9_-]{1,160}$/.test(requestId))
+    throw new WebhookAuthError("webhook_request_id_invalid");
+  if (!signature) throw new WebhookAuthError("webhook_signature_missing");
+  if (signature.length > 300)
+    throw new WebhookAuthError("webhook_signature_invalid");
   const pieces = signature.split(",").map((p) => p.trim().split("="));
   if (pieces.length !== 2 || new Set(pieces.map((p) => p[0])).size !== 2)
-    throw new ProviderError("Assinatura inválida.", true);
+    throw new WebhookAuthError("webhook_signature_invalid");
   const ts = pieces.find((p) => p[0] === "ts")?.[1],
     mac = pieces.find((p) => p[0] === "v1")?.[1];
-  if (
-    !ts ||
-    !/^\d{10}(?:\d{3})?$/.test(ts) ||
-    !mac ||
-    !/^\w{64}$/.test(mac) ||
-    !/^[a-fA-F0-9]{64}$/.test(mac)
-  )
-    throw new ProviderError("Assinatura inválida.", true);
+  if (!ts || !/^\d{10}(?:\d{3})?$/.test(ts))
+    throw new WebhookAuthError("webhook_timestamp_invalid");
+  if (!mac || !/^[a-fA-F0-9]{64}$/.test(mac))
+    throw new WebhookAuthError("webhook_signature_invalid");
   const timestamp = Number(ts) * (ts.length === 10 ? 1000 : 1);
   if (timestamp > now + 300000)
-    throw new ProviderError("Assinatura inválida.", true);
+    throw new WebhookAuthError("webhook_timestamp_future");
   const expected = createHmac("sha256", secret)
     .update(`id:${ids[0].toLowerCase()};request-id:${requestId};ts:${ts};`)
     .digest();
   if (!timingSafeEqual(expected, Buffer.from(mac, "hex")))
-    throw new ProviderError("Assinatura inválida.", true);
+    throw new WebhookAuthError("webhook_signature_mismatch");
   return /^ord/i.test(ids[0]) ? ids[0].toUpperCase() : ids[0];
 }
 export async function providerRequest(
