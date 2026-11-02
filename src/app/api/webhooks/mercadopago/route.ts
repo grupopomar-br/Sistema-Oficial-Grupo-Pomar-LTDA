@@ -2,6 +2,7 @@ import { parseBillingConfig } from "@/lib/config/billing";
 import {
   verifyMercadoPagoSignature,
   ProviderError,
+  webhookAuthRejection,
 } from "@/lib/billing/mercadopago";
 import { fetchVerifiedTransaction, orderIdPattern } from "@/lib/billing/orders";
 import { applyVerifiedPayment } from "@/lib/server/billing-worker";
@@ -18,7 +19,8 @@ export async function POST(request: Request) {
   let paymentId: string;
   try {
     paymentId = verifyMercadoPagoSignature(request, config.webhookSecret);
-  } catch {
+  } catch (error) {
+    console.warn(JSON.stringify(webhookAuthRejection(error)));
     return json({ received: false }, 401);
   }
   let body;
