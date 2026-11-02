@@ -16,6 +16,28 @@ const installment = "55555555-5555-4555-8555-555555555555";
 const charge = "66666666-6666-4666-8666-666666666666";
 const order = "ORD01J49MMW3SSBK5PSV3DFR32959";
 
+async function useWindowsLineEndings(db, beforeHash, afterHash) {
+  const source = (
+    await db.query(`select prosrc,md5(prosrc) hash,pg_get_functiondef(oid) definition
+      from pg_proc where oid=to_regprocedure('public.pomar_billing_apply_payment(jsonb)')`)
+  ).rows[0];
+  assert.equal(source.hash, beforeHash);
+  assert.equal(source.definition.split(source.prosrc).length, 2);
+  await db.exec(
+    source.definition.replace(source.prosrc, () =>
+      source.prosrc.replaceAll("\n", "\r\n"),
+    ),
+  );
+  assert.equal(
+    (
+      await db.query(
+        "select md5(prosrc) hash from pg_proc where oid=to_regprocedure('public.pomar_billing_apply_payment(jsonb)')",
+      )
+    ).rows[0].hash,
+    afterHash,
+  );
+}
+
 test("PostgreSQL 17 concilia order confirmada sem ampliar permissões nem duplicar caixa", async () => {
   const db = new PGlite();
   try {
@@ -35,6 +57,12 @@ test("PostgreSQL 17 concilia order confirmada sem ampliar permissões nem duplic
       .filter((f) => f.endsWith(".sql") && f !== fix)
       .sort())
       await db.exec(await readFile(new URL(file, migrations), "utf8"));
+    // SQL pasted from Windows must match the exact same source, including strings.
+    await useWindowsLineEndings(
+      db,
+      "24733c96f5688ff4d22f277029c8a532",
+      "4d94e9be2a3d85a2d08e9a9dd1ac0a84",
+    );
     await db.exec(`insert into pomar_private.owner_registry values(true,'${owner}',true);
       insert into pomar_settings(owner_id,id,business_name,display_name) values('${owner}','${owner}','Exemplo','Proprietário');
       begin;
@@ -109,6 +137,12 @@ test("PostgreSQL 17 concilia order confirmada sem ampliar permissões nem duplic
     });
     const migration = await readFile(new URL(fix, migrations), "utf8");
     await db.exec(migration);
+    await useWindowsLineEndings(
+      db,
+      "25e638e51f1439a3af98b7c6f7b540c8",
+      "940aff9e9fb909936b58b92880ef9a33",
+    );
+    assert.equal((await db.query(preflight)).rows[0].funcao, "atualizada");
     await db.exec(migration); // repeated installation must be safe
     assert.deepEqual((await db.query(preflight)).rows[0], {
       versao_postgres: 17,
@@ -183,10 +217,26 @@ test("PostgreSQL 17 concilia order confirmada sem ampliar permissões nem duplic
       1,
     );
 
-    // An unexpected implementation must never be overwritten by the migration.
-    await db.exec(`create or replace function public.pomar_billing_apply_payment(p_event jsonb)
-      returns jsonb language plpgsql security definer set search_path='' as $$
-      begin return '{}'::jsonb; end $$;`);
+    // Ignoring whitespace alone is unsafe: a changed literal can normalize to
+    // the same hash. The exact source guard must still refuse the migration.
+    const source = (
+      await db.query(`select prosrc,pg_get_functiondef(oid) definition,
+        md5(regexp_replace(prosrc,'[[:space:]]+','','g')) normalized
+        from pg_proc where oid=to_regprocedure('public.pomar_billing_apply_payment(jsonb)')`)
+    ).rows[0];
+    const changed = source.definition.replace(
+      "'Data de aprovação não confirmada.'",
+      "'Datade aprovação não confirmada.'",
+    );
+    assert.notEqual(changed, source.definition);
+    await db.exec(changed);
+    assert.equal(
+      (
+        await db.query(`select md5(regexp_replace(prosrc,'[[:space:]]+','','g')) normalized
+          from pg_proc where oid=to_regprocedure('public.pomar_billing_apply_payment(jsonb)')`)
+      ).rows[0].normalized,
+      source.normalized,
+    );
     await assert.rejects(
       db.exec(migration),
       /POMAR_UNEXPECTED_BILLING_FUNCTION/,
@@ -197,7 +247,7 @@ test("PostgreSQL 17 concilia order confirmada sem ampliar permissões nem duplic
         "select prosrc from pg_proc where oid=to_regprocedure('public.pomar_billing_apply_payment(jsonb)')",
       )
     ).rows[0].prosrc;
-    assert.match(preserved, /begin return '\{\}'::jsonb; end/);
+    assert.match(preserved, /Datade aprovação não confirmada/);
   } finally {
     await db.close();
   }
