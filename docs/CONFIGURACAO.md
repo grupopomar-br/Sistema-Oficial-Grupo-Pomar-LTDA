@@ -102,3 +102,7 @@ Publique a versão compatível da aplicação e, em seguida, aplique manualmente
 ## Metodologias, foto e sessão
 
 Siga [PERSONALIZACAO.md](PERSONALIZACAO.md) para ativar as tabelas, o bucket privado e as novas janelas de sessão na conta existente. A atualização depende da migração de conclusão de projetos descrita acima e preserva o checkout financeiro.
+
+## Agenda e avisos
+
+Para reuniões, notificações internas e entrega no aparelho, siga [REUNIOES_E_NOTIFICACOES.md](REUNIOES_E_NOTIFICACOES.md). A migração é incremental; Web Push depende de configuração própria e da ativação no aparelho.

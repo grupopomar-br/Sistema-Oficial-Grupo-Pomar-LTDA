@@ -7,6 +7,7 @@ import {
   refundSchema,
   extensionCommands,
 } from "./extensions.ts";
+import { meetingSchema, meetingCommand } from "./meetings.ts";
 import { newId } from "./id.ts";
 import { z } from "zod";
 import { isDateOnly } from "./dates.ts";
@@ -189,6 +190,8 @@ export const workspaceSchema = z.strictObject({
   schemaVersion: z.literal(1),
   revision: z.number().int().min(0),
   personalizationReady: z.boolean().default(false),
+  meetingsReady: z.boolean().default(false),
+  meetings: z.array(meetingSchema).max(10000).default([]),
   settings: settingsSchema,
   profile: profileSchema.default({ avatarPath: "", version: 0 }),
   methodologies: z.array(methodologySchema).max(1000).default([]),
@@ -218,6 +221,7 @@ export const workspaceSchema = z.strictObject({
 export const commandSchema = z.discriminatedUnion("type", [
   ...extensionCommands,
   ...personalizationCommands,
+  meetingCommand,
   z.strictObject({ type: z.literal("saveClient"), value: clientSchema }),
   z.strictObject({ type: z.literal("saveArea"), value: areaSchema }),
   z.strictObject({ type: z.literal("saveProject"), value: projectSchema }),
@@ -304,6 +308,8 @@ export function emptyWorkspace(now = new Date().toISOString()): Workspace {
     schemaVersion: 1,
     revision: 0,
     personalizationReady: true,
+    meetingsReady: true,
+    meetings: [],
     profile: { avatarPath: "", version: 0 },
     methodologies: [],
     settings: {

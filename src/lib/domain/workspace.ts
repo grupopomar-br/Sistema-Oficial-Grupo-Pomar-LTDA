@@ -104,6 +104,7 @@ export function validateRelations(state: Workspace): void {
       "updates",
       "ideas",
       "methodologies",
+      "meetings",
       "collectionAgreements",
       "collectionActions",
       "charges",
@@ -133,6 +134,12 @@ export function validateRelations(state: Workspace): void {
         exists("clients", project.contractorId) &&
         exists("areas", project.areaId),
       "Projeto possui cliente ou área inexistente.",
+    );
+  for (const meeting of state.meetings)
+    required(
+      exists("clients", meeting.clientId) &&
+        exists("projects", meeting.projectId),
+      "Reunião possui vínculo inexistente.",
     );
   for (const task of state.tasks) {
     required(
@@ -351,6 +358,27 @@ export function applyCommand(
     return updated;
   };
   switch (command.type) {
+    case "saveMeeting": {
+      const before = state.meetings.find((m) => m.id === command.value.id);
+      const changed =
+        !before ||
+        before.startsAt !== command.value.startsAt ||
+        before.status !== command.value.status ||
+        before.reminderMinutes !== command.value.reminderMinutes;
+      save(state.meetings, {
+        ...command.value,
+        reminderVersion: before
+          ? before.reminderVersion + (changed ? 1 : 0)
+          : 1,
+      });
+      log(
+        "meeting",
+        command.value.id,
+        "save",
+        `Reunião atualizada: ${command.value.title}`,
+      );
+      break;
+    }
     case "saveMethodology":
       save(state.methodologies, command.value);
       log(

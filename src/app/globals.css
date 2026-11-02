@@ -4201,3 +4201,132 @@ td .text-button {
     flex-wrap: wrap;
   }
 }
+
+.meeting-summary {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  padding: 20px 24px;
+  background: var(--soft);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+}
+.meeting-summary p {
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.meeting-card {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.meeting-card-title {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  justify-content: space-between;
+}
+.meeting-card h3 {
+  font-size: 18px;
+  overflow-wrap: anywhere;
+}
+.meeting-card > p {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  color: var(--muted);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.meeting-card .meeting-time {
+  color: var(--green);
+  font-weight: 600;
+}
+.meeting-card .meeting-agenda {
+  display: block;
+}
+.meeting-card > small {
+  color: var(--muted);
+}
+.meeting-card > .button-group {
+  margin-top: auto;
+  padding-top: 10px;
+}
+.notification-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.notification-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 22px 24px;
+  border-bottom: 1px solid var(--line);
+}
+.notification-item:last-child {
+  border: 0;
+}
+.notification-item > div {
+  flex: 1;
+  min-width: 0;
+}
+.notification-item h3 {
+  font-size: 14px;
+}
+.notification-item p {
+  color: var(--muted);
+  margin-top: 5px;
+}
+.notification-item small {
+  display: block;
+  color: var(--muted);
+  margin-top: 8px;
+}
+.notification-unread {
+  background: #f6faeb;
+  border-left: 3px solid #8ba640;
+}
+.push-settings {
+  padding: 20px 0 4px;
+}
+.push-settings h3 {
+  font-size: 16px;
+  margin-bottom: 8px;
+}
+.push-settings p {
+  margin-bottom: 14px;
+  color: var(--muted);
+}
+.push-settings small {
+  display: block;
+  color: var(--muted);
+  margin: 12px 0;
+}
+@media (max-width: 760px) {
+  .meeting-card {
+    padding: 20px;
+  }
+  .meeting-card-title {
+    flex-direction: column;
+  }
+  .meeting-summary {
+    padding: 16px;
+    align-items: flex-start;
+  }
+  .notification-item {
+    padding: 18px;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .notification-item > div {
+    flex-basis: calc(100% - 48px);
+  }
+  .notification-item > .button {
+    margin-left: 44px;
+  }
+}
