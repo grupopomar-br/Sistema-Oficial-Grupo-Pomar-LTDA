@@ -134,6 +134,14 @@ Orders confirma status e valores no GET autenticado, mas seu contrato documentad
 - O proprietário confere a data no Mercado Pago e, em **Cobranças → Conciliação**, informa **Data do recebimento conferida no Mercado Pago → Confirmar data e conciliar**. A rota exige MFA recente, busca novamente a order e só permite essa confirmação para pagamento aprovado sem devolução. O banco valida a pendência, o proprietário e o saldo, registra a confirmação em auditoria e cria um único recebimento. Repetir não duplica.
 - A data já confirmada é preservada nos eventos seguintes. Devolução sem suas datas/detalhes completos fica em revisão, sem lançar um estorno com data inventada. A confirmação manual de datas de devolução pela interface ainda não integra esta versão; homologar o retorno real e fechar esse procedimento antes de operar devoluções reais.
 
+### Compatibilidade da conciliação com versões do PostgreSQL
+
+No PostgreSQL 17 e anteriores, um gatilho de integridade diferido pode rodar após a função privilegiada retornar, usando o papel restrito do worker. Nesse caso, a tentativa de registrar o recebimento pode falhar com `42501` ao verificar a tabela de recibos. O mesmo código também pode indicar outras recusas; não se deve alterar permissões com base apenas nele.
+
+Antes da instalação, `supabase/04_diagnostico_conciliacao_pix.sql` permite conferir somente metadados: versão do servidor, definição da função, gatilhos e permissões. O incremento `supabase/migrations/20261102150605_corrigir_conciliacao_pix.sql` verifica a versão esperada da função e a existência dos dois gatilhos, e executa as conferências do recibo e da alocação dentro da função já protegida. Se a definição instalada divergir, a migração para sem modificá-la. Não desative gatilhos nem conceda acesso direto às tabelas ao worker. A migração não lança, altera ou remove pagamentos; ela precisa ser aplicada manualmente ao banco correto antes de uma nova tentativa de conciliação.
+
+Os testes incluem PostgreSQL 17 e 18, com dados fictícios. O teste da versão 17 reproduz o erro anterior e verifica a correção, a confirmação idempotente, a restrição de acesso e a rejeição de recibo sem alocação. Eles não substituem a conferência do resultado no ambiente real.
+
 A aprovação do teste continua sem caixa real. Não ativar recebimento real antes de testar todo o fluxo da própria conta, inclusive a confirmação de data, as notificações e a rotina de devolução.
 
 ## Fontes oficiais consultadas
