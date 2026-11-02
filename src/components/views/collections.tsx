@@ -48,6 +48,7 @@ export default function Collections(props: ViewProps) {
     [dialog, setDialog] = useState<Dialog | null>(null),
     [reconciling, setReconciling] = useState<string | null>(null),
     [reconcileError, setReconcileError] = useState(""),
+    [reconcileMfa, setReconcileMfa] = useState(false),
     [integration, setIntegration] = useState({
       enabled: false,
       mode: null as "test" | "live" | null,
@@ -83,6 +84,7 @@ export default function Collections(props: ViewProps) {
   const reconcile = async (paymentId: string, confirmedPaidOn?: string) => {
     setReconciling(paymentId);
     setReconcileError("");
+    setReconcileMfa(false);
     try {
       const response = await fetch("/api/billing/reconcile", {
         method: "POST",
@@ -93,8 +95,16 @@ export default function Collections(props: ViewProps) {
         }),
       });
       const data = await response.json();
-      if (!response.ok)
+      if (response.status === 401)
+        window.location.replace("/entrar?motivo=sessao");
+      if (!response.ok) {
+        setReconcileMfa(
+          data.code === "MFA_REQUIRED" ||
+            (response.status === 403 &&
+              String(data.error).includes("autenticador")),
+        );
         throw new Error(data.error ?? "Não foi possível conferir.");
+      }
       await reload();
     } catch (error) {
       setReconcileError(
@@ -250,7 +260,9 @@ export default function Collections(props: ViewProps) {
           {reconcileError && (
             <p className="form-error" role="alert">
               {reconcileError}{" "}
-              <a href="/seguranca?next=/central">Confirmar autenticador</a>
+              {reconcileMfa && (
+                <a href="/seguranca?next=/central">Confirmar autenticador</a>
+              )}
             </p>
           )}
           <p className="helper-text">
