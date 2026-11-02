@@ -17,7 +17,7 @@ A aplicação funciona com o banco anterior enquanto a atualização manual est�
 ## Uso
 
 - **Metodologias:** crie o nome, serviço, objetivo, etapas, diferenciais, entregáveis, critérios de qualidade e referências. Pesquise no conteúdo, consulte, edite ou arquive. O filtro de arquivadas permite restaurar. Nenhum texto interno da empresa foi inventado ou incluído como exemplo na conta.
-- **Preferências → Sua imagem na Central:** envie uma foto, use a logo do Grupo Pomar ou remova a imagem. A foto aparece também no rodapé da navegação. PNG/JPG/WebP de até 2 MB; o servidor decodifica, limita pixels, rejeita SVG/animação, remove metadados e regrava WebP de até 512 px.
+- **Preferências → Sua imagem na Central:** envie uma foto, use a logo do Grupo Pomar ou remova a imagem. A foto aparece também no rodapé da navegação. PNG/JPG/WebP de até 2 MB; o servidor decodifica, limita pixels, rejeita SVG/animação, remove metadados e regrava WebP quadrado de 512 × 512 px, preservando a imagem inteira e preenchendo margens com transparência.
 - **Projetos:** o tempo decorrido utiliza dias civis e a conclusão efetiva. A contagem não usa o vencimento como se fosse conclusão; projetos antigos sem data continuam identificados como tal.
 
 ## Sessão

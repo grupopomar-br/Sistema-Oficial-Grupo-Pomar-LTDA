@@ -90,7 +90,7 @@ test("avatar é decodificado, reduzido e regravado como WebP sem metadados; SVG 
   const meta = await sharp(output).metadata();
   assert.equal(meta.format, "webp");
   assert.equal(meta.width, 512);
-  assert.ok(meta.height <= 512);
+  assert.equal(meta.height, 512);
   assert.equal(meta.exif, undefined);
   for (const bad of [
     Buffer.from(
@@ -112,6 +112,66 @@ test("avatar é decodificado, reduzido e regravado como WebP sem metadados; SVG 
   });
   await assert.rejects(profileBytes(stream), /2 MB/);
   assert.equal(cancelled, true);
+});
+
+test("avatar 1:1 preserva os quatro cantos de fotos quadradas, verticais, horizontais e pequenas", async () => {
+  const colors = [
+    [230, 40, 40],
+    [40, 200, 40],
+    [40, 40, 230],
+    [230, 210, 40],
+  ];
+  for (const [width, height] of [
+    [128, 128],
+    [1024, 512],
+    [512, 1024],
+    [64, 32],
+  ]) {
+    const pixels = Buffer.alloc(width * height * 4, 255);
+    const markerWidth = Math.max(4, Math.floor(width / 8));
+    const markerHeight = Math.max(4, Math.floor(height / 8));
+    const corners = [
+      [0, 0],
+      [width - markerWidth, 0],
+      [0, height - markerHeight],
+      [width - markerWidth, height - markerHeight],
+    ];
+    for (const [index, [left, top]] of corners.entries()) {
+      for (let y = top; y < top + markerHeight; y++)
+        for (let x = left; x < left + markerWidth; x++)
+          for (let channel = 0; channel < 3; channel++)
+            pixels[(y * width + x) * 4 + channel] = colors[index][channel];
+    }
+    const input = await sharp(pixels, { raw: { width, height, channels: 4 } })
+      .png()
+      .toBuffer();
+    const output = await normalizeProfileImage(input);
+    const { data, info } = await sharp(output)
+      .ensureAlpha()
+      .raw()
+      .toBuffer({ resolveWithObject: true });
+    assert.equal(info.width, 512);
+    assert.equal(info.height, 512);
+    const scale = Math.min(512 / width, 512 / height);
+    const offsetX = (512 - width * scale) / 2;
+    const offsetY = (512 - height * scale) / 2;
+    for (const [index, [left, top]] of corners.entries()) {
+      const x = Math.floor(offsetX + (left + markerWidth / 2) * scale);
+      const y = Math.floor(offsetY + (top + markerHeight / 2) * scale);
+      const pixel = (y * info.width + x) * info.channels;
+      assert.equal(data[pixel + 3], 255);
+      for (let channel = 0; channel < 3; channel++)
+        assert.ok(
+          Math.abs(data[pixel + channel] - colors[index][channel]) < 35,
+          `canto ${index} preservado em ${width}x${height}`,
+        );
+    }
+    assert.equal(
+      data[3],
+      width === height ? 255 : 0,
+      "as margens de imagens retangulares ficam transparentes",
+    );
+  }
 });
 
 test("política de sessão depende da migração: fallback apenas para RPC ausente, sem ocultar erros", async () => {

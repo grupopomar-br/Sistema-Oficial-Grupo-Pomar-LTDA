@@ -441,9 +441,9 @@ small {
   display: grid;
   place-items: center;
   flex-shrink: 0;
-  width: 31px;
-  height: 31px;
-  border-radius: 9px;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
   background: #dfe9c9;
   color: #234330;
   font-size: 12px;
@@ -4055,6 +4055,8 @@ td .text-button {
 .profile-avatar {
   overflow: hidden;
   flex-shrink: 0;
+  aspect-ratio: 1 / 1;
+  padding: 3px;
 }
 .profile-avatar img {
   display: block;
@@ -4065,15 +4067,10 @@ td .text-button {
 .profile-avatar-large {
   width: 96px;
   height: 96px;
-  border-radius: 22px;
+  padding: 7px;
+  border-radius: 16px;
   font-size: 32px;
   border: 1px solid var(--line);
-}
-.profile-avatar-brand img {
-  object-fit: contain;
-}
-.profile-avatar-large.profile-avatar-brand {
-  width: 192px;
 }
 .profile-settings {
   display: flex;

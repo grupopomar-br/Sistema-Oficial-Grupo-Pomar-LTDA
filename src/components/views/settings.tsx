@@ -142,7 +142,9 @@ export default function Settings({ today }: ViewProps) {
               )}
             </div>
             <small>
-              PNG, JPG ou WebP, até 2 MB. A foto fica privada na sua conta.
+              Imagem quadrada (1:1), em PNG, JPG ou WebP, até 2 MB. Imagens
+              retangulares são ajustadas sem corte. A foto fica privada na sua
+              conta.
             </small>
             {!state.personalizationReady && (
               <p className="inline-note">
