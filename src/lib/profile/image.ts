@@ -46,7 +46,10 @@ export async function normalizeProfileImage(bytes: Uint8Array) {
     // Metadata (including EXIF location) is discarded by default.
     return await input
       .rotate()
-      .resize(512, 512, { fit: "inside", withoutEnlargement: true })
+      .resize(512, 512, {
+        fit: "contain",
+        background: { r: 0, g: 0, b: 0, alpha: 0 },
+      })
       .webp({ quality: 86 })
       .toBuffer();
   } catch {

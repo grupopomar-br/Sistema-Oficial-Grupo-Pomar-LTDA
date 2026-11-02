@@ -12,10 +12,9 @@ export function ProfileAvatar({ large = false }: { large?: boolean }) {
         ? `/api/profile?path=${encodeURIComponent(path)}`
         : "";
   const [failed, setFailed] = useState("");
+  const size = large ? 96 : 32;
   return (
-    <span
-      className={`profile-avatar ${large ? "profile-avatar-large" : ""} ${path === "brand" ? "profile-avatar-brand" : ""}`}
-    >
+    <span className={`profile-avatar ${large ? "profile-avatar-large" : ""}`}>
       {source && failed !== source ? (
         <img
           src={source}
@@ -24,8 +23,8 @@ export function ProfileAvatar({ large = false }: { large?: boolean }) {
               ? "Grupo Pomar"
               : `Foto de ${state.settings.displayName}`
           }
-          width={large ? 96 : 34}
-          height={large ? 96 : 34}
+          width={size}
+          height={size}
           onError={() => setFailed(source)}
         />
       ) : (
