@@ -15,6 +15,7 @@ import {
 } from "@/lib/billing/orders";
 import { pixWorkerReady } from "@/lib/server/pix-checkout";
 import { providerErrorDetails } from "@/lib/billing/provider-diagnostics";
+import { reconciliationStorageFailure } from "@/lib/billing/reconciliation-diagnostics";
 import { todayDate } from "@/lib/domain/dates";
 import {
   applyVerifiedPayment,
@@ -23,16 +24,19 @@ import {
 import { boundedJson, json, errorResponse } from "@/lib/server/http";
 import { readWorkspace, databaseFailure } from "@/lib/server/workspace";
 export async function POST(request: Request) {
+  let stage = "authorization";
   try {
     const app = parseEnvironment(process.env);
     requireOrigin(request, app.appUrl);
     const owner = await sensitiveOwner(false);
+    stage = "configuration";
     const config = parseBillingConfig(process.env);
     if (!config.enabled)
       throw new AccessError(
         "A integração de cobrança ainda não foi ativada.",
         503,
       );
+    stage = "input";
     const input = z
       .strictObject({
         paymentId: z.string().regex(providerIdPattern),
@@ -49,6 +53,7 @@ export async function POST(request: Request) {
           "Confira a order antes de informar uma data.",
           400,
         );
+      stage = "lookup";
       const { data: charge, error: chargeError } = await owner.supabase
         .from("pomar_charges")
         .select("id,amount_cents")
@@ -60,6 +65,7 @@ export async function POST(request: Request) {
       if (chargeError) throw databaseFailure(chargeError);
       if (!charge)
         throw new AccessError("Cobrança não localizada nesta operação.", 404);
+      stage = "worker";
       if (
         !(await billingWorkerReady(config, owner.user.id)) ||
         !(await pixWorkerReady(config))
@@ -68,13 +74,17 @@ export async function POST(request: Request) {
           "A configuração do checkout precisa ser atualizada.",
           503,
         );
+      stage = "provider";
       const result = await fetchOrderForCharge(config, input.paymentId, {
         id: charge.id,
         amountCents: Number(charge.amount_cents),
       });
+      stage = "storage";
       await applyVerifiedPayment(config, result.payment);
+      stage = "workspace";
       return json({ workspace: await readWorkspace(owner.supabase) });
     }
+    stage = "lookup";
     const { data, error } = await owner.supabase
       .from("pomar_provider_payments")
       .select("id")
@@ -84,12 +94,15 @@ export async function POST(request: Request) {
     if (error) throw databaseFailure(error);
     if (!data)
       throw new AccessError("Pagamento não localizado nesta operação.", 404);
+    stage = "worker";
     if (!(await billingWorkerReady(config, owner.user.id)))
       throw new AccessError(
         "A configuração do processador precisa ser conferida.",
         503,
       );
+    stage = "provider";
     const payment = await fetchVerifiedTransaction(config, input.paymentId);
+    stage = "confirmation";
     if (input.confirmedPaidOn) {
       if (
         !orderIdPattern.test(input.paymentId) ||
@@ -107,12 +120,14 @@ export async function POST(request: Request) {
         );
       payment.paidOn = input.confirmedPaidOn;
     }
+    stage = "storage";
     await applyVerifiedPayment(
       config,
       input.confirmedPaidOn
         ? { ...payment, ownerConfirmedBy: owner.user.id }
         : payment,
     );
+    stage = "workspace";
     return json({ workspace: await readWorkspace(owner.supabase) });
   } catch (error) {
     if (error instanceof ProviderError) {
@@ -133,6 +148,34 @@ export async function POST(request: Request) {
         503,
       );
     }
+    if (
+      stage === "storage" ||
+      (stage === "worker" && !(error instanceof AccessError))
+    ) {
+      const failure = reconciliationStorageFailure(error);
+      console.error(
+        JSON.stringify({
+          event: "billing_reconciliation_failed",
+          stage,
+          code: failure.code,
+          ...(failure.database_code
+            ? { database_code: failure.database_code }
+            : {}),
+        }),
+      );
+      return json(
+        { error: failure.message, code: failure.code, stage },
+        failure.status,
+      );
+    }
+    if (!(error instanceof AccessError))
+      console.error(
+        JSON.stringify({
+          event: "billing_reconciliation_failed",
+          stage,
+          code: "reconciliation_operation_failed",
+        }),
+      );
     return errorResponse(error);
   }
 }

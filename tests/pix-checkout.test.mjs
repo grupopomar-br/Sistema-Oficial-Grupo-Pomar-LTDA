@@ -547,12 +547,17 @@ test("Orders conserva ID antes do QR, retoma a mesma order e exige data confirma
     ]),
     /POMAR_DATE_CONFIRMATION/,
   );
-  await db.query("select pomar_billing_apply_payment($1::jsonb)", [
-    JSON.stringify(confirmed),
-  ]);
-  await db.query("select pomar_billing_apply_payment($1::jsonb)", [
-    JSON.stringify(confirmed),
-  ]);
+  await withPostgresClient(db, async (sql) => {
+    // Exercise the same owner-confirmed event and JSONB serialization as the
+    // authenticated reconciliation route, including a repeated confirmation.
+    assert.deepEqual(await applyPaymentEvent(sql, camelize(confirmed)), {
+      duplicate: false,
+      review: false,
+    });
+    assert.deepEqual(await applyPaymentEvent(sql, camelize(confirmed)), {
+      duplicate: true,
+    });
+  });
   await actor();
   state = parseWorkspace(
     camelize((await db.query("select pomar_workspace() v")).rows[0].v),
