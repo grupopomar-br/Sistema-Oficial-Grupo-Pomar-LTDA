@@ -1105,6 +1105,11 @@ small {
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+.project-duration {
+  color: #54745b;
+  font-size: 11px;
+  margin: 0 0 12px;
+}
 .project-card-footer {
   display: flex;
   justify-content: space-between;

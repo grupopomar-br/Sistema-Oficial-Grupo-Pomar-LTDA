@@ -11,6 +11,24 @@ export function camelize(value: unknown): unknown {
   return value;
 }
 export function databaseCommand(command: unknown): unknown {
+  // Completion is set by the database on status transitions. Removing it also
+  // keeps project saves compatible while the optional migration is pending.
+  if (
+    command &&
+    typeof command === "object" &&
+    "type" in command &&
+    command.type === "saveProject" &&
+    "value" in command &&
+    command.value &&
+    typeof command.value === "object" &&
+    !Array.isArray(command.value)
+  ) {
+    const { completedOn: _completedOn, ...value } = command.value as Record<
+      string,
+      unknown
+    >;
+    command = { ...command, value };
+  }
   const convert = (value: unknown): unknown => {
     if (Array.isArray(value)) return value.map(convert);
     if (value && typeof value === "object")

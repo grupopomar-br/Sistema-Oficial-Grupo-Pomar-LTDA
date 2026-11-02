@@ -86,6 +86,12 @@ As variáveis `NEXT_PUBLIC_` participam do build; refaça o build ao alterá-las
 
 No Registro.br, configure DNS somente quando a hospedagem fornecer os destinos corretos. Preserve MX/TXT e demais registros usados por e-mail ou outros serviços. Ative HTTPS na hospedagem, ajuste os callbacks e teste antes de usar o domínio na operação. Não foi realizada configuração de Vercel, Registro.br, DNS ou cobrança de plano.
 
+## Duração dos projetos
+
+O contador usa dias corridos desde a data de início. A data de conclusão passa a ser registrada pelo banco quando o projeto é marcado como concluído, no fuso da operação. Projetos concluídos antes da instalação permanecem sem data de conclusão; o sistema não deduz essa data pelo prazo previsto.
+
+Publique a versão compatível da aplicação e, em seguida, aplique manualmente `supabase/migrations/20261102071708_project_completion_date.sql` no projeto correto. Até a aplicação da migração, a leitura usa o snapshot anterior e os projetos em aberto já podem exibir o tempo decorrido; a data de conclusão ainda não será gravada. Depois, valide com um projeto de homologação e recarregue a Central. A consulta anterior mantém seu formato para permitir retorno à versão anterior da aplicação.
+
 ## Referências oficiais
 
 - [Supabase: preparação para produção](https://supabase.com/docs/guides/deployment/going-into-prod)

@@ -452,7 +452,15 @@ export function applyCommand(
           );
         }
       }
-      save(state.projects, command.value);
+      save(state.projects, {
+        ...command.value,
+        completedOn:
+          command.value.status === "completed"
+            ? before?.status === "completed"
+              ? (before.completedOn ?? null)
+              : todayDate(new Date(now))
+            : null,
+      });
       log(
         "project",
         command.value.id,
