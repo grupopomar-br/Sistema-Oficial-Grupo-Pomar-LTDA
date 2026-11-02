@@ -70,6 +70,7 @@ export const projectSchema = z
     priority: prioritySchema,
     startedOn: date.nullable(),
     dueOn: date.nullable(),
+    completedOn: date.nullable().optional(),
     nextAction: text(1000),
     nextActionOn: date.nullable(),
     waitingFor: text(500),

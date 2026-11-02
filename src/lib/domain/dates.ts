@@ -42,6 +42,32 @@ export function daysBetween(from: string, to: string): number {
   );
 }
 
+export function projectDurationLabel(
+  project: {
+    startedOn: string | null;
+    completedOn?: string | null;
+    status: string;
+  },
+  today: string,
+): string {
+  if (!project.startedOn) return "Início não informado";
+  if (project.status === "cancelled") return "Projeto cancelado";
+  if (project.status === "completed" && !project.completedOn)
+    return "Conclusão sem data registrada";
+  const end = project.status === "completed" ? project.completedOn! : today;
+  const days = daysBetween(project.startedOn, end);
+  if (days < 0 && project.status === "completed")
+    return "Datas do projeto inconsistentes";
+  if (days < 0) return `Início em ${-days} ${days === -1 ? "dia" : "dias"}`;
+  if (project.status === "completed")
+    return days === 0
+      ? "Concluído no mesmo dia"
+      : `${days} ${days === 1 ? "dia corrido" : "dias corridos"} até a conclusão`;
+  return days === 0
+    ? "Início hoje"
+    : `${days} ${days === 1 ? "dia corrido" : "dias corridos"} desde o início`;
+}
+
 export function shortDate(value: string | null): string {
   if (!value) return "Sem data";
   return new Intl.DateTimeFormat("pt-BR", {

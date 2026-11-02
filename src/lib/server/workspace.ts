@@ -2,6 +2,7 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { parseWorkspace } from "../domain/workspace";
 import { camelize } from "../domain/transport";
+import { fetchWorkspaceSnapshot } from "../domain/workspace-snapshot";
 export { databaseCommand } from "../domain/transport";
 
 export class DatabaseError extends Error {
@@ -80,7 +81,9 @@ export function databaseFailure(error: {
   );
 }
 export async function readWorkspace(supabase: SupabaseClient) {
-  const { data, error } = await supabase.rpc("pomar_workspace");
+  const { data, error } = await fetchWorkspaceSnapshot((name) =>
+    supabase.rpc(name),
+  );
   if (error) throw databaseFailure(error);
   return parseWorkspace(camelize(data));
 }

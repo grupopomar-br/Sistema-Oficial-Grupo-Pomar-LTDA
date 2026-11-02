@@ -24,7 +24,12 @@ import {
 import { ProjectCard } from "./project-card";
 import type { ModalState } from "./types";
 import { labels } from "@/lib/domain/model";
-import { money, fullDate, shortDate } from "@/lib/domain/dates";
+import {
+  money,
+  fullDate,
+  shortDate,
+  projectDurationLabel,
+} from "@/lib/domain/dates";
 import { projectProgress, relatedProjectId } from "@/lib/domain/selectors";
 
 export function EntityDetails({
@@ -205,6 +210,7 @@ export function EntityDetails({
       <div className="progress-track">
         <span style={{ width: `${projectProgress(state, project.id)}%` }} />
       </div>
+      <p className="helper-text">{projectDurationLabel(project, today)}</p>
       {contractor && (
         <p className="helper-text">Contratante: {contractor.name}</p>
       )}

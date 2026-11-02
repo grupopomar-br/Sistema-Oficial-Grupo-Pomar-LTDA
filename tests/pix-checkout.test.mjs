@@ -813,3 +813,23 @@ test("worker recupera ORDTST da mesma cobrança, conserva ID no DTO e nunca tran
   await admin();
   await db.exec("update pomar_private.billing_config set mode='test'");
 });
+
+test("snapshot de projetos mantém compatibilidade com o checkout e a versão anterior", async () => {
+  const area = crypto.randomUUID();
+  const project = crypto.randomUUID();
+  await admin();
+  await db.exec(`insert into public.pomar_areas(id,owner_id,name,color) values('${area}','${owner}','Área fictícia','green');
+    insert into public.pomar_projects(id,owner_id,name,area_id,status,priority,started_on) values('${project}','${owner}','Projeto fictício','${area}','active','P2',current_date);`);
+  await actor();
+  const older = (await db.query("select public.pomar_workspace() v")).rows[0].v;
+  const newer = (await db.query("select public.pomar_workspace_enriched() v"))
+    .rows[0].v;
+  const oldProject = older.projects.find((value) => value.id === project);
+  const newProject = newer.projects.find((value) => value.id === project);
+  assert.equal(Object.hasOwn(oldProject, "completed_on"), false);
+  assert.equal(newProject.completed_on, null);
+  for (const key of ["charges", "provider_payments", "refunds"])
+    assert.deepEqual(older[key], newer[key]);
+  assert.doesNotThrow(() => parseWorkspace(camelize(older)));
+  assert.doesNotThrow(() => parseWorkspace(camelize(newer)));
+});

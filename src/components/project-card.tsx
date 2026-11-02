@@ -4,7 +4,11 @@ import { ArrowUpRight, Calendar, CheckCircle2 } from "lucide-react";
 import { Badge, PriorityBadge } from "./ui";
 import { useWorkspace } from "./workspace-provider";
 import { labels, type Project } from "@/lib/domain/model";
-import { shortDate, daysBetween } from "@/lib/domain/dates";
+import {
+  shortDate,
+  daysBetween,
+  projectDurationLabel,
+} from "@/lib/domain/dates";
 import { projectProgress, isActiveProject } from "@/lib/domain/selectors";
 
 export function ProjectCard({
@@ -71,6 +75,7 @@ export function ProjectCard({
             : labels.project[project.status]}
         </p>
       </div>
+      <p className="project-duration">{projectDurationLabel(project, today)}</p>
       <div className="project-card-footer">
         <span
           className={
