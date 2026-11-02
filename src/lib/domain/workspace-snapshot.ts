@@ -8,11 +8,14 @@ type WorkspaceRpcResult<T> = {
 export async function fetchWorkspaceSnapshot<T>(
   rpc: (
     name:
+      | "pomar_workspace_scheduled"
       | "pomar_workspace_personalized"
       | "pomar_workspace_enriched"
       | "pomar_workspace",
   ) => PromiseLike<WorkspaceRpcResult<T>>,
 ): Promise<WorkspaceRpcResult<T>> {
+  const scheduled = await rpc("pomar_workspace_scheduled");
+  if (scheduled.error?.code !== "PGRST202") return scheduled;
   const personalized = await rpc("pomar_workspace_personalized");
   if (personalized.error?.code !== "PGRST202") return personalized;
   const result = await rpc("pomar_workspace_enriched");

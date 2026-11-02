@@ -4,6 +4,7 @@ import { SessionBoundary } from "./session-boundary";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   LayoutDashboard,
+  CalendarClock,
   BookOpen,
   Lightbulb,
   CreditCard,
@@ -39,8 +40,18 @@ import type { View, ModalState, ViewProps } from "./types";
 import { getAlerts, isActiveProject } from "@/lib/domain/selectors";
 import { todayDate } from "@/lib/domain/dates";
 import type { SessionPolicy } from "@/lib/domain/security";
+import {
+  NotificationProvider,
+  useNotifications,
+} from "./notification-provider";
 import { ProfileAvatar } from "./profile-avatar";
 
+const Meetings = dynamic(() => import("./views/meetings"), {
+  loading: Skeleton,
+});
+const Notifications = dynamic(() => import("./views/notifications"), {
+  loading: Skeleton,
+});
 const Ideas = dynamic(() => import("./views/ideas"), { loading: Skeleton });
 const Methodologies = dynamic(() => import("./views/methodologies"), {
   loading: Skeleton,
@@ -73,6 +84,8 @@ const navigation = [
   { id: "clients", label: "Clientes", icon: Users },
   { id: "finance", label: "Financeiro", icon: Wallet },
   { id: "collections", label: "Cobranças", icon: CreditCard },
+  { id: "meetings", label: "Reuniões", icon: CalendarClock },
+  { id: "notifications", label: "Notificações", icon: Bell },
   { id: "ideas", label: "Ideias", icon: Lightbulb },
   { id: "methodologies", label: "Metodologias", icon: BookOpen },
   { id: "commercial", label: "Comercial", icon: TrendingUp },
@@ -94,11 +107,14 @@ function Shell({ initialView = "overview" }: { initialView?: View }) {
     noticeKind,
     dismissNotice,
   } = useWorkspace();
+  const { feed: notificationFeed } = useNotifications();
   const [view, setView] = useState<View>(
     [
       "collections",
       "ideas",
       "methodologies",
+      "meetings",
+      "notifications",
       "overview",
       "clients",
       "projects",
@@ -155,6 +171,7 @@ function Shell({ initialView = "overview" }: { initialView?: View }) {
     projects: state.projects.filter(isActiveProject).length,
     tasks: state.tasks.filter((item) => item.status !== "done").length,
     alerts: alertCount,
+    notifications: notificationFeed.unread,
   };
   const title =
     view === "settings"
@@ -303,11 +320,11 @@ function Shell({ initialView = "overview" }: { initialView?: View }) {
             <button
               type="button"
               className="header-notification"
-              aria-label={`Abrir ${alertCount} alertas`}
-              onClick={() => navigate("alerts")}
+              aria-label={`Abrir notificações: ${notificationFeed.unread} não lidas`}
+              onClick={() => navigate("notifications")}
             >
               <Bell size={18} />
-              {alertCount > 0 && <span />}
+              {notificationFeed.unread > 0 && <span />}
             </button>
             <Button
               variant="primary"
@@ -389,6 +406,8 @@ function Shell({ initialView = "overview" }: { initialView?: View }) {
           ) : (
             <>
               {view === "collections" && <Collections {...viewProps} />}
+              {view === "meetings" && <Meetings {...viewProps} />}
+              {view === "notifications" && <Notifications {...viewProps} />}
               {view === "ideas" && <Ideas {...viewProps} />}
               {view === "methodologies" && <Methodologies />}
               {view === "overview" && <Overview {...viewProps} />}{" "}
@@ -493,7 +512,9 @@ export default function AppShell({
   return (
     <SessionBoundary mode={mode} sessionPolicy={sessionPolicy}>
       <WorkspaceProvider mode={mode} sessionPolicy={sessionPolicy}>
-        <Shell initialView={initialView} />
+        <NotificationProvider>
+          <Shell initialView={initialView} />
+        </NotificationProvider>
       </WorkspaceProvider>
     </SessionBoundary>
   );

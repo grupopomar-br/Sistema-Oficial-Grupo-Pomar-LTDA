@@ -14,6 +14,8 @@ export async function proxy(request: NextRequest) {
     `script-src 'self' 'nonce-${nonce}'${development ? " 'unsafe-eval'" : " 'strict-dynamic'"}`,
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob:",
+    "worker-src 'self'",
+    "manifest-src 'self'",
     "font-src 'self' data:",
     `connect-src 'self' ${supabaseOrigin}${development ? " ws: http: https:" : ""}`,
     "object-src 'none'",

@@ -1,4 +1,13 @@
-# Validação de identidade, metodologias, perfil e sessão
+# Agenda, notificações e perfil 1:1 - validação de 02/11/2026
+
+- 95 testes passaram: horários Fortaleza, duração/vínculos/conflitos de reuniões, revisão específica do lembrete, pagamentos live verificados, sandbox excluído, baseline de aprovações anteriores, aviso único por pagamento, lease/retry de entrega e invalidação de reunião cancelada.
+- PostgreSQL 17 confirmou RLS, bloqueio a anônimo/outro usuário, leitura limitada de avisos e worker sem CRUD. O caixa Pix permaneceu coberto pela suíte existente.
+- Envio Web Push foi controlado nos testes. Foram conferidos expiração/TTL, 404/410, falhas temporárias e definitivas, endpoints permitidos, chaves VAPID e navegação segura do service worker sem cache de dados privados.
+- Perfil 1:1 testado com marcadores nos quatro cantos de imagens quadradas, horizontais, verticais e pequenas; novos arquivos são 512 × 512 com transparência e preservação do conteúdo.
+
+A aplicação remota da nova migração, configuração do worker/agendador e entrega em aparelho real permanecem manuais. As rotas internas autenticadas não foram percorridas no navegador do proprietário. Não houve pagamento ou push real durante os testes desta rodada.
+
+## Validação anterior de identidade, metodologias, perfil e sessão
 
 Validação local de 02/11/2026:
 

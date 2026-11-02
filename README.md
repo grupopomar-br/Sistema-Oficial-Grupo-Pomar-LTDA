@@ -64,3 +64,5 @@ O projeto pode ser executado em uma hospedagem compatível com Next.js; não exi
 ## Continuidade e limites
 
 Leia [SEGURANCA_E_CONTINUIDADE.md](docs/SEGURANCA_E_CONTINUIDADE.md). A v1 carrega um snapshot com limites explícitos, apresenta paginação na interface e mostra os 1.000 eventos de histórico mais recentes. A restauração JSON é somente local e aceita até 5 MB. Não há migração automática dos registros locais para a nuvem, conexão a banco pessoal, cofre bancário, assinaturas, envio automático de mensagens, anexos ou emissão fiscal. Pagamentos de teste não criam caixa real. A integração implementada ainda não foi conectada a uma conta real nem homologada no serviço.
+
+A agenda de reuniões, os lembretes de 1/2 horas e os avisos de pagamento estão documentados em [REUNIOES_E_NOTIFICACOES.md](docs/REUNIOES_E_NOTIFICACOES.md), com ativação manual e teste de entrega no aparelho.

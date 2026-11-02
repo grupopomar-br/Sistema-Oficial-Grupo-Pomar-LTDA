@@ -122,6 +122,7 @@ test("snapshot novo recua apenas quando a função ainda não está no cache do 
       : { data: { projects: [] }, error: null };
   });
   assert.deepEqual(calls, [
+    "pomar_workspace_scheduled",
     "pomar_workspace_personalized",
     "pomar_workspace_enriched",
     "pomar_workspace",

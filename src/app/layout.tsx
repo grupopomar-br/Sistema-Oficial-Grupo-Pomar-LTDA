@@ -5,6 +5,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Central Operacional | Grupo Pomar",
   description: "Sistema interno de direção e operação.",
+  icons: { apple: "/brand/pomar-app-192.png" },
   robots: { index: false, follow: false },
 };
 export default function RootLayout({ children }: { children: ReactNode }) {

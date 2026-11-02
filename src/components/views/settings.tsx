@@ -20,7 +20,7 @@ import { newBase, type Area, type Workspace } from "@/lib/domain/model";
 import { downloadFile } from "./finance";
 import { ProfileAvatar } from "../profile-avatar";
 
-export default function Settings({ today }: ViewProps) {
+export default function Settings({ today, navigate }: ViewProps) {
   const {
     state,
     mode,
@@ -178,6 +178,22 @@ export default function Settings({ today }: ViewProps) {
             if (photo.current) photo.current.value = "";
           }}
         />
+      </section>
+      <section className="panel settings-panel">
+        <SectionHeading
+          title="Avisos de pagamentos e reuniões"
+          eyebrow="NOTIFICAÇÕES"
+        />
+        <p>
+          Ative os avisos em cada aparelho e acompanhe as confirmações na
+          Central.
+        </p>
+        <div className="form-footer">
+          <Button onClick={() => navigate("notifications")}>
+            Configurar notificações
+            <ArrowUpRight size={16} />
+          </Button>
+        </div>
       </section>
       <div className="settings-grid">
         <section className="panel settings-panel">

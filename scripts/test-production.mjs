@@ -66,6 +66,10 @@ try {
     "/api/billing/reconcile",
     "/api/session",
     "/api/profile",
+    "/api/notifications/read",
+    "/api/notifications/device",
+    "/api/notifications/test",
+    "/api/notifications/dispatch",
     "/api/webhooks/mercadopago",
   ]) {
     const response = await fetch(origin + path, {
@@ -81,6 +85,14 @@ try {
     // Readiness details remain behind the owner/session/MFA check.
     assert.equal((await status.json()).code, undefined);
   }
+  const notices = await fetch(origin + "/api/notifications");
+  assert.equal(notices.status, 503);
+  const worker = await fetch(origin + "/sw.js");
+  assert.equal(worker.status, 200);
+  assert.ok(worker.headers.get("cache-control").includes("no-store"));
+  const manifest = await fetch(origin + "/manifest.webmanifest");
+  assert.equal(manifest.status, 200);
+  assert.equal((await manifest.json()).display, "standalone");
   const privateProfile = await fetch(origin + "/api/profile?path=brand");
   assert.equal(privateProfile.status, 503);
   for (const asset of ["grupo-pomar-claro.png", "grupo-pomar-escuro.png"]) {

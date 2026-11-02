@@ -19,6 +19,10 @@ export function databaseFailure(error: {
 }): DatabaseError {
   const message = error.message ?? "";
   const messages: Record<string, string> = {
+    POMAR_DEVICE_LIMIT:
+      "O limite é de dez aparelhos ativos. Desative um aparelho antes de cadastrar outro.",
+    POMAR_TEST_RATE_LIMIT:
+      "Aguarde um minuto antes de enviar outro aviso de teste neste aparelho.",
     POMAR_PAYMENT_GATE:
       "A condição de pagamento aceita ainda não foi atendida. Confira Cobranças antes de alterar a etapa.",
     POMAR_PROVIDER_RECEIPT:
