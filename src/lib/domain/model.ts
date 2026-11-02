@@ -10,6 +10,11 @@ import {
 import { newId } from "./id.ts";
 import { z } from "zod";
 import { isDateOnly } from "./dates.ts";
+import {
+  methodologySchema,
+  profileSchema,
+  personalizationCommands,
+} from "./personalization.ts";
 
 const id = z.uuid();
 const text = (max = 250) => z.string().trim().max(max);
@@ -183,7 +188,10 @@ export const settingsSchema = z.strictObject({
 export const workspaceSchema = z.strictObject({
   schemaVersion: z.literal(1),
   revision: z.number().int().min(0),
+  personalizationReady: z.boolean().default(false),
   settings: settingsSchema,
+  profile: profileSchema.default({ avatarPath: "", version: 0 }),
+  methodologies: z.array(methodologySchema).max(1000).default([]),
   clients: z.array(clientSchema).max(10000),
   areas: z.array(areaSchema).max(100),
   projects: z.array(projectSchema).max(10000),
@@ -209,6 +217,7 @@ export const workspaceSchema = z.strictObject({
 });
 export const commandSchema = z.discriminatedUnion("type", [
   ...extensionCommands,
+  ...personalizationCommands,
   z.strictObject({ type: z.literal("saveClient"), value: clientSchema }),
   z.strictObject({ type: z.literal("saveArea"), value: areaSchema }),
   z.strictObject({ type: z.literal("saveProject"), value: projectSchema }),
@@ -294,6 +303,9 @@ export function emptyWorkspace(now = new Date().toISOString()): Workspace {
   return {
     schemaVersion: 1,
     revision: 0,
+    personalizationReady: true,
+    profile: { avatarPath: "", version: 0 },
+    methodologies: [],
     settings: {
       businessName: "Grupo Pomar",
       displayName: "William",

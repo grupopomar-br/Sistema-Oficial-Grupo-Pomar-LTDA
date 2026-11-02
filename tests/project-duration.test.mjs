@@ -117,11 +117,15 @@ test("snapshot novo recua apenas quando a função ainda não está no cache do 
   const calls = [];
   const result = await fetchWorkspaceSnapshot(async (name) => {
     calls.push(name);
-    return name === "pomar_workspace_enriched"
+    return name !== "pomar_workspace"
       ? { data: null, error: { code: "PGRST202" } }
       : { data: { projects: [] }, error: null };
   });
-  assert.deepEqual(calls, ["pomar_workspace_enriched", "pomar_workspace"]);
+  assert.deepEqual(calls, [
+    "pomar_workspace_personalized",
+    "pomar_workspace_enriched",
+    "pomar_workspace",
+  ]);
   assert.deepEqual(result.data, { projects: [] });
   for (const code of ["42501", "PGRST000", "P0001"]) {
     let count = 0;

@@ -1,3 +1,4 @@
+import { storageFixture } from "./helpers/storage-fixture.mjs";
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { readFile, readdir } from "node:fs/promises";
@@ -79,6 +80,7 @@ before(async () => {
   create function auth.jwt() returns jsonb language sql stable as $$select coalesce(nullif(current_setting('request.jwt.claims',true),''),'{}')::jsonb$$;
   grant usage on schema auth to anon,authenticated;grant execute on function auth.uid(),auth.jwt() to anon,authenticated;
   insert into auth.users values('${owner}'),('${other}');insert into auth.sessions(id,user_id) values('${session}','${owner}');`);
+  await storageFixture(db);
   for (const f of (
     await readdir(new URL("../supabase/migrations/", import.meta.url))
   )

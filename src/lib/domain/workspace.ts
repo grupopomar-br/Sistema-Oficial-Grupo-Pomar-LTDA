@@ -103,6 +103,7 @@ export function validateRelations(state: Workspace): void {
       "opportunities",
       "updates",
       "ideas",
+      "methodologies",
       "collectionAgreements",
       "collectionActions",
       "charges",
@@ -350,6 +351,32 @@ export function applyCommand(
     return updated;
   };
   switch (command.type) {
+    case "saveMethodology":
+      save(state.methodologies, command.value);
+      log(
+        "methodology",
+        command.value.id,
+        command.value.archived ? "archive" : "save",
+        `Metodologia atualizada: ${command.value.title}`,
+      );
+      break;
+    case "saveProfile":
+      if (command.expectedVersion !== state.profile.version)
+        throw new BusinessError(
+          "A foto mudou em outra sessão. Atualize e tente novamente.",
+          "CONFLICT",
+        );
+      state.profile = {
+        avatarPath: command.avatarPath,
+        version: state.profile.version + 1,
+      };
+      log(
+        "profile",
+        envelope.commandId,
+        "save",
+        "Imagem de perfil atualizada.",
+      );
+      break;
     case "saveIdea":
       save(state.ideas, command.value);
       log(

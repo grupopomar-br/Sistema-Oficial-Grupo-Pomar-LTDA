@@ -18,13 +18,23 @@ import { exportBackup, importBackup } from "@/lib/domain/backup";
 import { demonstrationWorkspace } from "@/lib/domain/demo";
 import { newBase, type Area, type Workspace } from "@/lib/domain/model";
 import { downloadFile } from "./finance";
+import { ProfileAvatar } from "../profile-avatar";
 
 export default function Settings({ today }: ViewProps) {
-  const { state, mode, execute, replaceLocal, saving, operationError } =
-    useWorkspace();
-  const [preferencesRevision, setPreferencesRevision] = useState(
-    state.revision,
-  );
+  const {
+    state,
+    mode,
+    execute,
+    replaceLocal,
+    saving,
+    operationError,
+    saveProfile,
+    sessionPolicy,
+  } = useWorkspace();
+  const preferencesBaseline = useRef(state.settings);
+  const [preferencesError, setPreferencesError] = useState("");
+  const [photoError, setPhotoError] = useState("");
+  const photo = useRef<HTMLInputElement>(null);
   const [fileError, setFileError] = useState("");
   const [pending, setPending] = useState<Workspace | null>(null);
   const [confirm, setConfirm] = useState(false);
@@ -32,10 +42,20 @@ export default function Settings({ today }: ViewProps) {
   const file = useRef<HTMLInputElement>(null);
   const savePreferences = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    setPreferencesError("");
+    if (
+      JSON.stringify(preferencesBaseline.current) !==
+      JSON.stringify(state.settings)
+    ) {
+      setPreferencesError(
+        "As preferências mudaram em outra sessão. Reabra esta página para revisar antes de salvar.",
+      );
+      return;
+    }
     const form = new FormData(event.currentTarget);
     const saved = await execute({
       type: "saveSettings",
-      expectedRevision: preferencesRevision,
+      expectedRevision: state.revision,
       value: {
         businessName: String(form.get("businessName")),
         displayName: String(form.get("displayName")),
@@ -43,7 +63,13 @@ export default function Settings({ today }: ViewProps) {
         staleDays: Number(form.get("staleDays")),
       },
     });
-    if (saved) setPreferencesRevision(preferencesRevision + 1);
+    if (saved)
+      preferencesBaseline.current = {
+        businessName: String(form.get("businessName")).trim(),
+        displayName: String(form.get("displayName")).trim(),
+        dailyFocusLimit: Number(form.get("dailyFocusLimit")),
+        staleDays: Number(form.get("staleDays")),
+      };
   };
   const readFile = async (selected: File | undefined) => {
     if (!selected) return;
@@ -82,6 +108,75 @@ export default function Settings({ today }: ViewProps) {
             : "Espaço local de desenvolvimento"}
         </Badge>
       </div>
+      <section className="panel settings-panel">
+        <SectionHeading title="Sua imagem na Central" eyebrow="PERFIL" />
+        <div className="profile-settings">
+          <ProfileAvatar large />
+          <div>
+            <h3>Uma Central com a sua identidade.</h3>
+            <p>Use sua foto de perfil ou a logo do Grupo Pomar.</p>
+            <div className="button-group">
+              <Button
+                variant="primary"
+                disabled={
+                  saving || mode !== "cloud" || !state.personalizationReady
+                }
+                onClick={() => photo.current?.click()}
+              >
+                <Upload size={16} />
+                Enviar foto
+              </Button>
+              <Button
+                disabled={saving || !state.personalizationReady}
+                onClick={() => void saveProfile("brand")}
+              >
+                Usar logo do Grupo Pomar
+              </Button>
+              {state.profile.avatarPath && (
+                <Button
+                  disabled={saving}
+                  onClick={() => void saveProfile(null)}
+                >
+                  Remover imagem
+                </Button>
+              )}
+            </div>
+            <small>
+              PNG, JPG ou WebP, até 2 MB. A foto fica privada na sua conta.
+            </small>
+            {!state.personalizationReady && (
+              <p className="inline-note">
+                O perfil está aguardando a ativação na sua conta.
+              </p>
+            )}
+            {mode === "local" && (
+              <p>O envio de fotos está disponível na conta conectada.</p>
+            )}
+            {(photoError || operationError) && (
+              <p className="form-error" role="alert">
+                {photoError || operationError}
+              </p>
+            )}
+          </div>
+        </div>
+        <input
+          ref={photo}
+          type="file"
+          className="sr-only"
+          accept="image/png,image/jpeg,image/webp"
+          aria-label="Selecionar imagem de perfil"
+          onChange={async (event) => {
+            const selected = event.target.files?.[0];
+            setPhotoError("");
+            if (selected) {
+              if (selected.size > 2 * 1024 * 1024)
+                setPhotoError("Use uma imagem de até 2 MB.");
+              else await saveProfile(selected);
+            }
+            if (photo.current) photo.current.value = "";
+          }}
+        />
+      </section>
       <div className="settings-grid">
         <section className="panel settings-panel">
           <SectionHeading title="Sua operação" eyebrow="PREFERÊNCIAS" />
@@ -130,6 +225,11 @@ export default function Settings({ today }: ViewProps) {
               </Field>
             </div>
             <div className="form-footer">
+              {preferencesError && (
+                <p className="form-error" role="alert">
+                  {preferencesError}
+                </p>
+              )}
               <Button variant="primary" type="submit" disabled={saving}>
                 <Check size={16} />
                 Salvar preferências
@@ -243,6 +343,15 @@ export default function Settings({ today }: ViewProps) {
                 ? "O acesso é verificado no servidor e nas políticas do banco. Não há cadastro público de usuários."
                 : "Este é o ambiente local de desenvolvimento. O login exclusivo e a autenticação de dois fatores serão utilizados ao conectar o Supabase."}
             </p>
+            {mode === "cloud" && (
+              <p>
+                A sessão bloqueia após {sessionPolicy.idleTimeoutMs / 60000}{" "}
+                minutos sem atividade. A confirmação do autenticador para
+                operações financeiras vale por{" "}
+                {sessionPolicy.sensitiveMfaSeconds / 60} minutos. O limite total
+                da sessão é de oito horas.
+              </p>
+            )}
           </div>
           {mode === "cloud" && (
             <a className="button button-secondary" href="/seguranca">

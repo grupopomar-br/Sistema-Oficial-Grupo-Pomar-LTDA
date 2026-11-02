@@ -1,3 +1,4 @@
+import { storageFixture } from "./helpers/storage-fixture.mjs";
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFile, readdir } from "node:fs/promises";
@@ -53,6 +54,7 @@ test("PostgreSQL 17 concilia order confirmada sem ampliar permissões nem duplic
       grant usage on schema auth to anon,authenticated;
       grant execute on function auth.uid(),auth.jwt() to anon,authenticated;
       insert into auth.users values('${owner}'),('${other}');`);
+    await storageFixture(db);
     for (const file of (await readdir(migrations))
       .filter((f) => f.endsWith(".sql") && f !== fix)
       .sort())

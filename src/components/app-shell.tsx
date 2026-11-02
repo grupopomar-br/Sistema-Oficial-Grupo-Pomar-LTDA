@@ -4,6 +4,7 @@ import { SessionBoundary } from "./session-boundary";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   LayoutDashboard,
+  BookOpen,
   Lightbulb,
   CreditCard,
   FolderKanban,
@@ -37,8 +38,13 @@ import Overview from "./views/overview";
 import type { View, ModalState, ViewProps } from "./types";
 import { getAlerts, isActiveProject } from "@/lib/domain/selectors";
 import { todayDate } from "@/lib/domain/dates";
+import type { SessionPolicy } from "@/lib/domain/security";
+import { ProfileAvatar } from "./profile-avatar";
 
 const Ideas = dynamic(() => import("./views/ideas"), { loading: Skeleton });
+const Methodologies = dynamic(() => import("./views/methodologies"), {
+  loading: Skeleton,
+});
 const Collections = dynamic(() => import("./views/collections"), {
   loading: Skeleton,
 });
@@ -68,6 +74,7 @@ const navigation = [
   { id: "finance", label: "Financeiro", icon: Wallet },
   { id: "collections", label: "Cobranças", icon: CreditCard },
   { id: "ideas", label: "Ideias", icon: Lightbulb },
+  { id: "methodologies", label: "Metodologias", icon: BookOpen },
   { id: "commercial", label: "Comercial", icon: TrendingUp },
   { id: "alerts", label: "Alertas", icon: Bell },
   { id: "history", label: "Histórico", icon: History },
@@ -91,6 +98,7 @@ function Shell({ initialView = "overview" }: { initialView?: View }) {
     [
       "collections",
       "ideas",
+      "methodologies",
       "overview",
       "clients",
       "projects",
@@ -229,9 +237,14 @@ function Shell({ initialView = "overview" }: { initialView?: View }) {
             <span>Preferências</span>
           </button>
           <div className="sidebar-profile">
-            <span className="profile-avatar">
-              {state.settings.displayName.slice(0, 1)}
-            </span>
+            <button
+              type="button"
+              className="profile-open"
+              aria-label="Editar imagem de perfil"
+              onClick={() => navigate("settings")}
+            >
+              <ProfileAvatar />
+            </button>
             <div>
               <strong>{state.settings.displayName}</strong>
               <span>Proprietário · {state.settings.businessName}</span>
@@ -377,6 +390,7 @@ function Shell({ initialView = "overview" }: { initialView?: View }) {
             <>
               {view === "collections" && <Collections {...viewProps} />}
               {view === "ideas" && <Ideas {...viewProps} />}
+              {view === "methodologies" && <Methodologies />}
               {view === "overview" && <Overview {...viewProps} />}{" "}
               {view === "projects" && <Projects {...viewProps} />}{" "}
               {view === "tasks" && <Tasks {...viewProps} />}{" "}
@@ -470,13 +484,15 @@ function Shell({ initialView = "overview" }: { initialView?: View }) {
 export default function AppShell({
   mode,
   initialView,
+  sessionPolicy,
 }: {
   mode: "local" | "cloud";
   initialView?: View;
+  sessionPolicy?: SessionPolicy;
 }) {
   return (
-    <SessionBoundary mode={mode}>
-      <WorkspaceProvider mode={mode}>
+    <SessionBoundary mode={mode} sessionPolicy={sessionPolicy}>
+      <WorkspaceProvider mode={mode} sessionPolicy={sessionPolicy}>
         <Shell initialView={initialView} />
       </WorkspaceProvider>
     </SessionBoundary>

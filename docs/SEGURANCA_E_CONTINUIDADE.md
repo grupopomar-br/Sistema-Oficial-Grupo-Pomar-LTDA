@@ -4,23 +4,23 @@ O objetivo é restringir o acesso ao proprietário e permitir evolução sem per
 
 ## Controles implementados — v0.4
 
-| Controle                | Implementação                                                                                                             |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| Proprietário exclusivo  | UUID no servidor e registro privado no banco; nenhum uso de `user_metadata` para autorização                              |
-| Segundo fator           | TOTP e exigência de `aal2` tanto nas verificações do servidor quanto no RLS                                               |
-| Sessão limitada         | 8 horas desde criação no Auth, 15 minutos de inatividade no banco, bloqueio de tela e coordenação de atividade entre abas |
-| Confirmação de operação | TOTP nos últimos 5 minutos para checkout e reconciliação                                                                  |
-| Sessão ativa            | `getUser` e claims verificados; política consulta existência da sessão no Auth                                            |
-| Dados privados          | RLS ativado e forçado em todas as tabelas `pomar_`; sem permissões de tabela para `anon`                                  |
-| Escrita                 | Validação Zod, lista fixa de comandos/colunas, versão por registro e transação no banco                                   |
-| Financeiro              | Centavos inteiros, soma de parcelas/alocações verificada, bloqueio de sobrepagamento e preservação de originais           |
-| Tentativas repetidas    | UUID de comando e conteúdo comparados no mesmo RPC/transação                                                              |
-| Histórico               | Triggers gravam alterações; usuário da aplicação não pode inserir, alterar ou excluir eventos de auditoria                |
-| Sessão no navegador     | Cookies HttpOnly, SameSite=Lax e Secure fora do desenvolvimento                                                           |
-| Requisições             | Verificação de Origin nas escritas, JSON limitado a 512 KB e redirecionamentos internos fixos                             |
-| Respostas               | Cache privado/no-store, CSP com nonce por resposta, bloqueio de frame e orientação de não indexar                         |
-| Exportações             | JSON validado e neutralização de fórmulas em células CSV                                                                  |
-| Credenciais             | Sem segredo administrativo no código ou no cliente; `.env.local` ignorado pelo Git                                        |
+| Controle                | Implementação                                                                                                                                                  |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Proprietário exclusivo  | UUID no servidor e registro privado no banco; nenhum uso de `user_metadata` para autorização                                                                   |
+| Segundo fator           | TOTP e exigência de `aal2` tanto nas verificações do servidor quanto no RLS                                                                                    |
+| Sessão limitada         | 8 horas desde criação no Auth, 60 minutos de inatividade no banco após a atualização de personalização, bloqueio de tela e coordenação de atividade entre abas |
+| Confirmação de operação | TOTP nos últimos 30 minutos para checkout e reconciliação após a atualização de personalização                                                                 |
+| Sessão ativa            | `getUser` e claims verificados; política consulta existência da sessão no Auth                                                                                 |
+| Dados privados          | RLS ativado e forçado em todas as tabelas `pomar_`; sem permissões de tabela para `anon`                                                                       |
+| Escrita                 | Validação Zod, lista fixa de comandos/colunas, versão por registro e transação no banco                                                                        |
+| Financeiro              | Centavos inteiros, soma de parcelas/alocações verificada, bloqueio de sobrepagamento e preservação de originais                                                |
+| Tentativas repetidas    | UUID de comando e conteúdo comparados no mesmo RPC/transação                                                                                                   |
+| Histórico               | Triggers gravam alterações; usuário da aplicação não pode inserir, alterar ou excluir eventos de auditoria                                                     |
+| Sessão no navegador     | Cookies HttpOnly, SameSite=Lax e Secure fora do desenvolvimento                                                                                                |
+| Requisições             | Verificação de Origin nas escritas, JSON limitado a 512 KB e redirecionamentos internos fixos                                                                  |
+| Respostas               | Cache privado/no-store, CSP com nonce por resposta, bloqueio de frame e orientação de não indexar                                                              |
+| Exportações             | JSON validado e neutralização de fórmulas em células CSV                                                                                                       |
+| Credenciais             | Sem segredo administrativo no código ou no cliente; `.env.local` ignorado pelo Git                                                                             |
 
 A política de scripts de produção não usa `unsafe-eval`; o desenvolvimento precisa dessa permissão para a ferramenta do framework. Estilos inline são permitidos para indicadores/estilos do React. Não há scripts de analytics, CDN de fontes nem envio automático de dados a outros serviços.
 
@@ -53,3 +53,5 @@ Antes de uma atualização, preserve código, migrações aplicadas e cópia do 
 - O cofre para informações bancárias de maior risco, criptografia de campo/gestão de chaves e auditoria de segurança independente não foram implementados ou concluídos. Não há base para prometer segurança absoluta.
 
 Antes da operação real, mantenha cadastro público desabilitado, revise os advisors do Supabase e teste os fluxos com seu usuário. Transforme o repositório em privado como planejado e mantenha alterações revisáveis por branch/PR. Não exponha dados privados no histórico do Git.
+
+A compatibilidade com as janelas anteriores (15/5 minutos), as políticas de imagem privada e a aplicação manual estão detalhadas em [PERSONALIZACAO.md](PERSONALIZACAO.md). O JSON exportado não incorpora os arquivos do Storage.

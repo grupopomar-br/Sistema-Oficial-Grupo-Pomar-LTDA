@@ -19,29 +19,19 @@
 }
 .brand {
   display: flex;
-  align-items: center;
-  gap: 12px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
 }
-.brandMark {
-  height: 48px;
-  width: 48px;
-  display: grid;
-  place-items: center;
-  background: #173e30;
-  border-radius: 14px;
-  color: #dff77b;
-}
-.brand strong {
-  display: block;
-  font-size: 12px;
-  font-weight: 750;
-  letter-spacing: 0.17em;
+.brand .wordmark {
+  width: 210px;
+  height: 49px;
 }
 .brand small {
-  display: block;
   color: var(--checkout-muted);
-  font-size: 12px;
-  margin-top: 1px;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  margin-top: -2px;
 }
 .secure {
   display: flex;
@@ -91,10 +81,16 @@
   line-height: 1.14;
   letter-spacing: -0.045em;
   margin: 0;
-  font-weight: 680;
+  font-weight: 560;
 }
 .summary h1 span {
-  color: #4e745e;
+  color: #345f35;
+  font-style: italic;
+  font-weight: 520;
+  background: linear-gradient(110deg, #71872c 4%, #123e2e 92%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 .intro {
   font-size: 14px;
@@ -363,14 +359,16 @@
   padding: 12px 16px;
 }
 .primary {
-  background: #173e30;
-  color: #fff;
+  background: linear-gradient(110deg, #e4fb84, #cbe956);
+  color: #173e30;
+  border-color: #bfda62;
+  box-shadow: 0 4px 12px #264d3010;
   transition:
     background 0.15s,
     transform 0.15s;
 }
 .primary:hover:not(:disabled) {
-  background: #24583f;
+  background: linear-gradient(110deg, #dcf76f, #b9dc40);
   transform: translateY(-1px);
 }
 .primary > svg:last-child {
@@ -653,19 +651,12 @@
   .header {
     height: 88px;
   }
-  .brandMark {
-    width: 41px;
-    height: 41px;
-    border-radius: 12px;
-  }
-  .brandMark svg {
-    width: 24px;
-  }
   .brand {
-    gap: 9px;
+    gap: 0;
   }
-  .brand strong {
-    font-size: 10px;
+  .brand .wordmark {
+    width: 165px;
+    height: 42px;
   }
   .brand small {
     font-size: 10px;
@@ -809,5 +800,12 @@
   }
   .primary {
     transition: none;
+  }
+}
+
+@media (forced-colors: active) {
+  .summary h1 span {
+    background: none;
+    -webkit-text-fill-color: currentColor;
   }
 }

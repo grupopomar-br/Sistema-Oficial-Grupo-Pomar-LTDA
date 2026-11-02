@@ -4,6 +4,8 @@ Sistema interno do Grupo Pomar para um único proprietário. Reúne direção di
 
 **Estado desta entrega:** checkout Pix com identidade do Grupo Pomar, prévia visual e integração com Mercado Pago Orders API. A criação assíncrona preserva a mesma order; datas financeiras ausentes exigem conferência do proprietário, sem inventar movimentações no caixa. O recebimento real exige a migração incremental, credenciais e homologação da conta Mercado Pago; segue desativado por padrão. Supabase e credenciais são configurados manualmente. Veja [o relatório de validação](docs/VALIDACAO.md) e [o roteiro do checkout](docs/CHECKOUT_PIX.md).
 
+A identidade visual, a base de metodologias, a foto de perfil e a política de sessão estão descritas em [PERSONALIZACAO.md](docs/PERSONALIZACAO.md), com atualização manual compatível com a conta existente.
+
 ## O que já foi implementado
 
 | Área         | Recursos                                                                                                                                               |

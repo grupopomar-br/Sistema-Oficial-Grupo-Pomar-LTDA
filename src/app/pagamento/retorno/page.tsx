@@ -2,7 +2,7 @@ import { Brand } from "@/components/ui";
 export default function PaymentReturn() {
   return (
     <main className="payment-return">
-      <Brand />
+      <Brand theme="light" />
       <section className="panel">
         <span className="eyebrow">ATENDIMENTO GRUPO POMAR</span>
         <h1>Você retornou do checkout.</h1>
