@@ -6,7 +6,11 @@ declare existing_source text; is_definer boolean; trigger_count integer;
 begin
  select p.prosrc,p.prosecdef into existing_source,is_definer
  from pg_catalog.pg_proc p where p.oid=to_regprocedure('public.pomar_billing_apply_payment(jsonb)');
- if existing_source is null or not is_definer or md5(existing_source) not in ('24733c96f5688ff4d22f277029c8a532','25e638e51f1439a3af98b7c6f7b540c8') then
+ -- Both source versions may have been pasted with LF or CRLF line endings.
+ -- Match the four exact bodies, including all quoted strings and comments.
+ if existing_source is null or not is_definer or md5(existing_source) not in
+  ('24733c96f5688ff4d22f277029c8a532','4d94e9be2a3d85a2d08e9a9dd1ac0a84',
+   '25e638e51f1439a3af98b7c6f7b540c8','940aff9e9fb909936b58b92880ef9a33') then
   raise exception 'POMAR_UNEXPECTED_BILLING_FUNCTION';
  end if;
  select count(*) into trigger_count from pg_catalog.pg_trigger t

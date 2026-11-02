@@ -140,6 +140,8 @@ No PostgreSQL 17 e anteriores, um gatilho de integridade diferido pode rodar ap�
 
 Antes da instalação, `supabase/04_diagnostico_conciliacao_pix.sql` permite conferir somente metadados: versão do servidor, definição da função, gatilhos e permissões. O incremento `supabase/migrations/20261102150605_corrigir_conciliacao_pix.sql` verifica a versão esperada da função e a existência dos dois gatilhos, e executa as conferências do recibo e da alocação dentro da função já protegida. Se a definição instalada divergir, a migração para sem modificá-la. Não desative gatilhos nem conceda acesso direto às tabelas ao worker. A migração não lança, altera ou remove pagamentos; ela precisa ser aplicada manualmente ao banco correto antes de uma nova tentativa de conciliação.
 
+O diagnóstico e a guarda reconhecem as assinaturas exatas dos mesmos corpos de função com quebras de linha LF ou CRLF. A comparação não ignora espaços dentro de literais ou outras diferenças na função.
+
 Os testes incluem PostgreSQL 17 e 18, com dados fictícios. O teste da versão 17 reproduz o erro anterior e verifica a correção, a confirmação idempotente, a restrição de acesso e a rejeição de recibo sem alocação. Eles não substituem a conferência do resultado no ambiente real.
 
 A aprovação do teste continua sem caixa real. Não ativar recebimento real antes de testar todo o fluxo da própria conta, inclusive a confirmação de data, as notificações e a rotina de devolução.

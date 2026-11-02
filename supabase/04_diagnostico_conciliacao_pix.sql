@@ -4,7 +4,9 @@ select
   coalesce((
     select case md5(p.prosrc)
       when '24733c96f5688ff4d22f277029c8a532' then 'original'
+      when '4d94e9be2a3d85a2d08e9a9dd1ac0a84' then 'original'
       when '25e638e51f1439a3af98b7c6f7b540c8' then 'atualizada'
+      when '940aff9e9fb909936b58b92880ef9a33' then 'atualizada'
       else 'diferente'
     end
     from pg_catalog.pg_proc p
