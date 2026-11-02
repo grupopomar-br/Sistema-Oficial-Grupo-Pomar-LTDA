@@ -5,8 +5,8 @@ export async function POST(request: Request) {
   try {
     const config = parseEnvironment(process.env);
     requireOrigin(request, config.appUrl);
-    await authorizedOwner(false);
-    return json({ active: true });
+    const owner = await authorizedOwner(false);
+    return json({ active: true, policy: owner.sessionPolicy });
   } catch (error) {
     return errorResponse(error);
   }

@@ -7,9 +7,14 @@ type WorkspaceRpcResult<T> = {
 // Authentication, network and database failures remain visible to the caller.
 export async function fetchWorkspaceSnapshot<T>(
   rpc: (
-    name: "pomar_workspace_enriched" | "pomar_workspace",
+    name:
+      | "pomar_workspace_personalized"
+      | "pomar_workspace_enriched"
+      | "pomar_workspace",
   ) => PromiseLike<WorkspaceRpcResult<T>>,
 ): Promise<WorkspaceRpcResult<T>> {
+  const personalized = await rpc("pomar_workspace_personalized");
+  if (personalized.error?.code !== "PGRST202") return personalized;
   const result = await rpc("pomar_workspace_enriched");
   return result.error?.code === "PGRST202"
     ? await rpc("pomar_workspace")

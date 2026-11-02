@@ -1,4 +1,16 @@
-# Registro de validação — v0.6
+# Validação de identidade, metodologias, perfil e sessão
+
+Validação local de 02/11/2026:
+
+- **88 testes passaram**, incluindo PostgreSQL 17 para as tabelas novas, RLS, idempotência, conflito de edição, isolamento do worker e compatibilidade dos snapshots anteriores. A conciliação Pix e a gravação da conclusão de projetos permaneceram cobertas.
+- Upload de imagem: decodificação, conversão WebP, redução para até 512 px, remoção de EXIF, rejeição de SVG/dados inválidos e interrupção de corpo acima de 2 MB.
+- Política de sessão conferida no domínio e no SQL: 60 minutos de inatividade, TOTP recente de 30 minutos, limite absoluto e revogação mantidos. Fallback para a política anterior somente se o RPC novo estiver ausente.
+- Build, TypeScript, HTTP de produção e formatação passaram; auditoria de produção sem vulnerabilidades conhecidas no momento da execução.
+- As logos foram copiadas dos arquivos fornecidos, sem redesenho. Alterações do checkout limitadas à identidade visual.
+
+**Limites desta rodada:** aplicação remota do SQL e teste do Storage real são manuais; a fixture SQL de Storage testa catálogo/RLS, sem emular o serviço HTTP. A prévia local anunciou o endereço e encerrou, com conexão recusada no navegador e servidor parado no diagnóstico. Isso impede afirmar validação visual/interativa local ou em celular real. Não foi criado nem pago um Pix novo para estas mudanças. Veja [o roteiro de ativação](PERSONALIZACAO.md).
+
+# Histórico da validação v0.6
 
 Validação local da migração Orders em 31/10/2026. A cobrança continua desativada até a configuração manual e homologação real.
 

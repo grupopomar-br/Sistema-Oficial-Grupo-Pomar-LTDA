@@ -23,30 +23,13 @@ import {
 import type { PixCheckout } from "@/lib/billing/pix-contract";
 import { money } from "@/lib/domain/dates";
 import styles from "./payment-checkout.module.css";
+import { BrandLogo } from "./brand-logo";
 
 function PaymentBrand() {
   return (
     <div className={styles.brand}>
-      <span className={styles.brandMark} aria-hidden="true">
-        <svg width="30" height="34" viewBox="0 0 29 32" fill="none">
-          <path
-            d="M14.5 2 26 8.6v14L14.5 30 3 23V9L14.5 2Z"
-            stroke="currentColor"
-            strokeWidth="2.3"
-          />
-          <path
-            d="M10 23V11.5l5-3 5 3v6l-5 3v-5l3-2"
-            stroke="currentColor"
-            strokeWidth="2.2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-      </span>
-      <span>
-        <strong>GRUPO POMAR</strong>
-        <small>Pagamentos</small>
-      </span>
+      <BrandLogo className={styles.wordmark} />
+      <small>Pagamentos</small>
     </div>
   );
 }

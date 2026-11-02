@@ -65,6 +65,7 @@ try {
     "/api/billing/charges",
     "/api/billing/reconcile",
     "/api/session",
+    "/api/profile",
     "/api/webhooks/mercadopago",
   ]) {
     const response = await fetch(origin + path, {
@@ -79,6 +80,13 @@ try {
     assert.equal(status.status, 503);
     // Readiness details remain behind the owner/session/MFA check.
     assert.equal((await status.json()).code, undefined);
+  }
+  const privateProfile = await fetch(origin + "/api/profile?path=brand");
+  assert.equal(privateProfile.status, 503);
+  for (const asset of ["grupo-pomar-claro.png", "grupo-pomar-escuro.png"]) {
+    const response = await fetch(origin + "/brand/" + asset);
+    assert.equal(response.status, 200);
+    assert.ok(response.headers.get("content-type").includes("image/png"));
   }
   const callback = await fetch(
     origin + "/pagamento/retorno?status=approved&payment_id=123",

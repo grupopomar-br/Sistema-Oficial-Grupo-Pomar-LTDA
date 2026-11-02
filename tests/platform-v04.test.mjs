@@ -1,3 +1,4 @@
+import { storageFixture } from "./helpers/storage-fixture.mjs";
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { readFile, readdir } from "node:fs/promises";
@@ -87,6 +88,7 @@ before(async () => {
  create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
  create function auth.jwt() returns jsonb language sql stable as $$select coalesce(nullif(current_setting('request.jwt.claims',true),''),'{}')::jsonb$$;
  grant usage on schema auth to anon,authenticated;grant execute on function auth.uid(),auth.jwt() to anon,authenticated;insert into auth.users values('${owner}'),('${other}');insert into auth.sessions(id,user_id) values('${session}','${owner}');`);
+  await storageFixture(db);
   for (const file of (
     await readdir(new URL("../supabase/migrations/", import.meta.url))
   )
@@ -114,7 +116,7 @@ before(async () => {
 });
 after(async () => await db?.close());
 test("sessão exige MFA recente para iniciar e expira no banco por tempo/inatividade", async () => {
-  await actor(owner, "aal2", Math.floor(Date.now() / 1000) - 301);
+  await actor(owner, "aal2", Math.floor(Date.now() / 1000) - 1801);
   assert.equal(
     (await db.query("select pomar_touch_session() s")).rows[0].s,
     "needs_mfa",
@@ -128,7 +130,7 @@ test("sessão exige MFA recente para iniciar e expira no banco por tempo/inativi
   assert.equal((await db.query("select pomar_access() ok")).rows[0].ok, true);
   await admin();
   await db.query(
-    "update pomar_private.session_guard set last_activity_at=now()-interval '16 minutes' where session_id=$1",
+    "update pomar_private.session_guard set last_activity_at=now()-interval '61 minutes' where session_id=$1",
     [session],
   );
   await actor();

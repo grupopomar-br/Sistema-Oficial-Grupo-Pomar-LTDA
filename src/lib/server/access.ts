@@ -1,5 +1,5 @@
 import "server-only";
-import { hasRecentMfa } from "../domain/security";
+import { hasRecentMfa, touchOwnerSession } from "../domain/security";
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "../supabase/server";
 import { parseEnvironment } from "../config/environment";
@@ -36,23 +36,31 @@ export async function verifiedOwner(readOnlyCookies = true) {
 export async function authorizedOwner(readOnlyCookies = true) {
   const owner = await verifiedOwner(readOnlyCookies);
   if (owner.claims.aal !== "aal2")
-    throw new AccessError("Conclua a verificação com seu autenticador.", 403);
-  const session = await owner.supabase.rpc("pomar_touch_session");
-  if (session.error)
+    throw new AccessError(
+      "Conclua a verificação com seu autenticador.",
+      403,
+      "MFA_REQUIRED",
+    );
+  const session = await touchOwnerSession((name) => owner.supabase.rpc(name));
+  if (session.error || !session.policy)
     throw new AccessError(
       "O banco precisa das migrações de segurança desta versão.",
       503,
     );
-  if (session.data === "needs_mfa")
-    throw new AccessError("Confirme novamente o código do autenticador.", 403);
-  if (session.data !== "granted")
+  if (session.status === "needs_mfa")
+    throw new AccessError(
+      "Confirme novamente o código do autenticador.",
+      403,
+      "MFA_REQUIRED",
+    );
+  if (session.status !== "granted")
     throw new AccessError(
       "Sua sessão expirou ou foi bloqueada por inatividade. Entre novamente.",
       401,
     );
   // The guarded touch already authorizes this session. Each data RPC/table read
   // also enforces RLS, so a second permission round trip adds no protection.
-  return owner;
+  return { ...owner, sessionPolicy: session.policy };
 }
 export async function ownerPage(requireMfa = true, next = "/central") {
   try {
@@ -72,7 +80,13 @@ export function requireOrigin(request: Request, appUrl: string) {
 
 export async function sensitiveOwner(readOnlyCookies = false) {
   const owner = await authorizedOwner(readOnlyCookies);
-  if (!hasRecentMfa(owner.claims))
+  if (
+    !hasRecentMfa(
+      owner.claims,
+      Date.now(),
+      owner.sessionPolicy.sensitiveMfaSeconds,
+    )
+  )
     throw new AccessError(
       "Confirme novamente o código do autenticador antes desta operação.",
       403,

@@ -35,7 +35,7 @@ supabase/02_proprietario.sql
 
 Substitua somente `00000000-0000-0000-0000-000000000000` pelo UUID do usuário criado em Authentication > Users e execute. O script recusa o placeholder, usuário inexistente ou a troca de um proprietário já definido. Ele cria preferências e três áreas genéricas; não inclui clientes nem movimentações financeiras.
 
-A sessão exige TOTP recente ao abrir, expira após 8 horas desde o login e é bloqueada após 15 minutos sem atividade registrada no servidor. Uma sessão expirada exige novo login. Gerar checkout ou reconciliar pagamento exige TOTP nos últimos 5 minutos.
+A sessão exige TOTP recente ao abrir e expira após 8 horas desde o login. Com a atualização de personalização, o bloqueio ocorre após 60 minutos sem atividade e a confirmação recente vale por 30 minutos nas operações financeiras. Até aplicar essa atualização manualmente, continuam os limites anteriores de 15 e 5 minutos. Veja [a ativação incremental](PERSONALIZACAO.md).
 
 A aplicação exige que o UUID em `POMAR_OWNER_USER_ID` e o proprietário definido no banco sejam o mesmo. Mantenha `pomar_private` fora dos schemas expostos pela Data API. Não conceda permissões adicionais a `anon`, `authenticated` ou `PUBLIC` para contornar erros.
 
@@ -98,3 +98,7 @@ Publique a versão compatível da aplicação e, em seguida, aplique manualmente
 - [Supabase: MFA](https://supabase.com/docs/guides/auth/auth-mfa)
 - [Supabase: RLS](https://supabase.com/docs/guides/database/postgres/row-level-security)
 - [Supabase: URLs de redirecionamento](https://supabase.com/docs/guides/auth/redirect-urls)
+
+## Metodologias, foto e sessão
+
+Siga [PERSONALIZACAO.md](PERSONALIZACAO.md) para ativar as tabelas, o bucket privado e as novas janelas de sessão na conta existente. A atualização depende da migração de conclusão de projetos descrita acima e preserva o checkout financeiro.

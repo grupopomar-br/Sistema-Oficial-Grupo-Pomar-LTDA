@@ -21,11 +21,17 @@ import {
   loadLocalWorkspace,
   persistLocalWorkspace,
 } from "@/lib/local/repository";
+import {
+  LEGACY_SESSION_POLICY,
+  type SessionPolicy,
+} from "@/lib/domain/security";
 
 type Mode = "local" | "cloud";
 type Context = {
   state: Workspace;
   mode: Mode;
+  sessionPolicy: SessionPolicy;
+  saveProfile: (image: File | "brand" | null) => Promise<boolean>;
   loading: boolean;
   saving: boolean;
   error: string | null;
@@ -60,9 +66,11 @@ async function responseJson(response: Response) {
 export function WorkspaceProvider({
   mode,
   children,
+  sessionPolicy = LEGACY_SESSION_POLICY,
 }: {
   mode: Mode;
   children: ReactNode;
+  sessionPolicy?: SessionPolicy;
 }) {
   const [state, setState] = useState<Workspace>(() => emptyWorkspace());
   const stateRef = useRef(state);
@@ -220,11 +228,72 @@ export function WorkspaceProvider({
     [mode, update],
   );
 
+  const saveProfile = useCallback(
+    async (image: File | "brand" | null) => {
+      if (mode === "local") {
+        if (image instanceof File) {
+          setOperationError(
+            "O envio de fotos está disponível na conta conectada.",
+          );
+          return false;
+        }
+        return execute({
+          type: "saveProfile",
+          avatarPath: image ?? "",
+          expectedVersion: stateRef.current.profile.version,
+        });
+      }
+      if (locked.current) return false;
+      locked.current = true;
+      setSaving(true);
+      setOperationError(null);
+      try {
+        const result = await responseJson(
+          await fetch("/api/profile", {
+            method: "POST",
+            headers: {
+              "x-profile-action":
+                image instanceof File
+                  ? "upload"
+                  : image === "brand"
+                    ? "brand"
+                    : "remove",
+              "x-profile-version": String(stateRef.current.profile.version),
+              "x-command-id": newId(),
+            },
+            body: image instanceof File ? image : null,
+          }),
+        );
+        update(parseWorkspace(result.workspace));
+        setNoticeKind("success");
+        setNotice("Imagem de perfil atualizada.");
+        return true;
+      } catch (failure) {
+        if (failure instanceof SessionRequestError && failure.status === 401)
+          window.location.replace("/entrar?motivo=sessao");
+        const message =
+          failure instanceof Error
+            ? failure.message
+            : "Não foi possível salvar a foto.";
+        setOperationError(message);
+        setNoticeKind("error");
+        setNotice(message);
+        return false;
+      } finally {
+        locked.current = false;
+        setSaving(false);
+      }
+    },
+    [mode, execute, update],
+  );
+
   return (
     <WorkspaceContext.Provider
       value={{
         state,
         mode,
+        sessionPolicy,
+        saveProfile,
         loading,
         saving,
         error,

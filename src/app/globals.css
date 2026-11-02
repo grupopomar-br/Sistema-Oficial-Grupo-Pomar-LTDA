@@ -326,31 +326,33 @@ small {
 }
 .brand {
   display: flex;
-  align-items: center;
-  gap: 12px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
   white-space: nowrap;
 }
-.brand-logo {
-  display: grid;
-  place-items: center;
-  width: 41px;
+.brand-wordmark {
+  display: inline-block;
+  flex-shrink: 0;
+  width: 184px;
   height: 44px;
-  color: var(--lime);
+  overflow: hidden;
 }
-.brand-name {
+.brand-wordmark img {
   display: block;
-  font-size: 9px;
-  font-weight: 650;
-  letter-spacing: 0.22em;
-  color: #a9beb0;
-  margin-bottom: 3px;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 .brand strong {
   display: block;
   color: #f6f9f3;
-  font-size: 13px;
-  letter-spacing: -0.25px;
-  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  font-weight: 500;
+}
+.brand-light strong {
+  color: var(--green);
 }
 .main-navigation {
   display: flex;
@@ -4042,4 +4044,163 @@ td .text-button {
 .contact-history p {
   white-space: pre-wrap;
   font-size: 12px;
+}
+
+/* Identidade e base de conhecimento da operação. */
+.profile-open {
+  padding: 0;
+  border-radius: 10px;
+  cursor: pointer;
+}
+.profile-avatar {
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.profile-avatar img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.profile-avatar-large {
+  width: 96px;
+  height: 96px;
+  border-radius: 22px;
+  font-size: 32px;
+  border: 1px solid var(--line);
+}
+.profile-avatar-brand img {
+  object-fit: contain;
+}
+.profile-avatar-large.profile-avatar-brand {
+  width: 192px;
+}
+.profile-settings {
+  display: flex;
+  align-items: flex-start;
+  gap: 24px;
+  padding: 22px 0 8px;
+}
+.profile-settings h3 {
+  font-size: 16px;
+  margin-bottom: 7px;
+}
+.profile-settings p {
+  color: var(--muted);
+  margin-bottom: 14px;
+}
+.profile-settings small {
+  display: block;
+  color: var(--muted);
+  margin-top: 12px;
+}
+.methodology-toolbar {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.methodology-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 240px;
+  color: var(--muted);
+}
+.methodology-search input {
+  flex: 1;
+  min-width: 0;
+}
+.methodology-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+.methodology-card {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+}
+.methodology-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+.methodology-card-top .badge {
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+.methodology-card h3 {
+  font-size: 19px;
+  overflow-wrap: anywhere;
+}
+.methodology-summary {
+  margin-top: 10px;
+  color: var(--muted);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.methodology-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: auto;
+  padding-top: 24px;
+}
+.methodology-card-footer small {
+  color: var(--muted);
+}
+.methodology-reading section {
+  padding: 20px 0;
+  border-bottom: 1px solid var(--line);
+}
+.methodology-reading h3 {
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+.methodology-reading p {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: var(--muted);
+}
+.methodology-form textarea {
+  resize: vertical;
+}
+@media (max-width: 1200px) {
+  .brand {
+    gap: 0;
+  }
+  .brand-wordmark {
+    width: 170px;
+  }
+}
+@media (max-width: 760px) {
+  .methodology-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .profile-settings {
+    flex-direction: column;
+    gap: 16px;
+  }
+  .methodology-toolbar {
+    gap: 12px;
+  }
+  .methodology-search {
+    min-width: 0;
+    width: 100%;
+    flex-basis: 100%;
+  }
+  .methodology-card {
+    padding: 20px;
+  }
+  .methodology-card-footer {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
 }

@@ -1,12 +1,18 @@
 "use client";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { IDLE_TIMEOUT_MS } from "@/lib/domain/security";
+import {
+  LEGACY_SESSION_POLICY,
+  sessionPolicy as parseSessionPolicy,
+  type SessionPolicy,
+} from "@/lib/domain/security";
 export function SessionBoundary({
   mode,
   children,
+  sessionPolicy = LEGACY_SESSION_POLICY,
 }: {
   mode: "local" | "cloud";
   children: ReactNode;
+  sessionPolicy?: SessionPolicy;
 }) {
   const last = useRef(0),
     broadcastAt = useRef(0);
@@ -14,6 +20,7 @@ export function SessionBoundary({
   useEffect(() => {
     if (mode !== "cloud") return;
     last.current = Date.now();
+    let policy = sessionPolicy;
     let closing = false;
     const channel =
       typeof BroadcastChannel !== "undefined"
@@ -30,7 +37,7 @@ export function SessionBoundary({
     };
     const activity = () => {
       const now = Date.now();
-      if (now - last.current > IDLE_TIMEOUT_MS) {
+      if (now - last.current > policy.idleTimeoutMs) {
         close();
         return;
       }
@@ -56,7 +63,7 @@ export function SessionBoundary({
     );
     const interval = window.setInterval(() => {
       const idle = Date.now() - last.current;
-      if (idle > IDLE_TIMEOUT_MS) {
+      if (idle > policy.idleTimeoutMs) {
         close();
         return;
       }
@@ -65,13 +72,23 @@ export function SessionBoundary({
           method: "POST",
           credentials: "same-origin",
         })
-          .then((r) => {
-            if (r.status === 401 || r.status === 403) close();
+          .then(async (r) => {
+            if (r.status === 401) return close();
+            const data = await r.json();
+            if (r.status === 403) {
+              if (data.code === "MFA_REQUIRED") {
+                closing = true;
+                window.location.replace(
+                  `/seguranca?next=${encodeURIComponent(window.location.pathname + window.location.search)}`,
+                );
+              } else close();
+            }
+            if (r.ok) policy = parseSessionPolicy(data.policy) ?? policy;
           })
           .catch(() => {});
     }, 30000);
     const focus = () => {
-      if (Date.now() - last.current > IDLE_TIMEOUT_MS) close();
+      if (Date.now() - last.current > policy.idleTimeoutMs) close();
     };
     window.addEventListener("focus", focus);
     return () => {
@@ -80,7 +97,7 @@ export function SessionBoundary({
       events.forEach((name) => window.removeEventListener(name, activity));
       window.removeEventListener("focus", focus);
     };
-  }, [mode]);
+  }, [mode, sessionPolicy]);
   if (locked)
     return (
       <main className="session-locked">

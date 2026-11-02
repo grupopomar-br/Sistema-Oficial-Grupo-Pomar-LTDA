@@ -13,30 +13,13 @@ import {
 } from "lucide-react";
 import type { Priority } from "@/lib/domain/model";
 import { monthLabel, shiftMonth } from "@/lib/domain/dates";
+import { BrandLogo } from "./brand-logo";
 
-export function Brand() {
+export function Brand({ theme = "dark" }: { theme?: "light" | "dark" }) {
   return (
-    <div className="brand">
-      <span className="brand-logo" aria-hidden="true">
-        <svg width="29" height="32" viewBox="0 0 29 32" fill="none">
-          <path
-            d="M14.5 2 26 8.6v14L14.5 30 3 23V9L14.5 2Z"
-            stroke="currentColor"
-            strokeWidth="2.3"
-          />
-          <path
-            d="M10 23V11.5l5-3 5 3v6l-5 3v-5l3-2"
-            stroke="currentColor"
-            strokeWidth="2.2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-      </span>
-      <span>
-        <span className="brand-name">GRUPO POMAR</span>
-        <strong>Central Operacional</strong>
-      </span>
+    <div className={`brand brand-${theme}`}>
+      <BrandLogo theme={theme} />
+      <strong>Central Operacional</strong>
     </div>
   );
 }
