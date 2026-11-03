@@ -20,6 +20,8 @@ import {
   Search,
   Plus,
   Menu,
+  PanelLeftClose,
+  PanelLeftOpen,
   X,
   Target,
   Eye,
@@ -136,6 +138,7 @@ function Shell({ initialView = "overview" }: { initialView?: View }) {
   );
   const [modal, setModal] = useState<ModalState | null>(null);
   const [mobile, setMobile] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [hiddenValues, setHiddenValues] = useState(false);
   const [today, setToday] = useState(todayDate);
   const [month, setMonth] = useState(() => todayDate().slice(0, 7));
@@ -162,6 +165,11 @@ function Shell({ initialView = "overview" }: { initialView?: View }) {
     window.addEventListener("keydown", keyboard);
     try {
       setHiddenValues(window.localStorage.getItem("pomar-hide-values") === "1");
+    } catch {}
+    try {
+      setSidebarCollapsed(
+        window.localStorage.getItem("pomar-sidebar-collapsed-v1") === "1",
+      );
     } catch {}
     return () => {
       window.removeEventListener("popstate", onBack);
@@ -198,8 +206,20 @@ function Shell({ initialView = "overview" }: { initialView?: View }) {
       } catch {}
       return !value;
     });
+  const toggleSidebar = () => {
+    const next = !sidebarCollapsed;
+    setSidebarCollapsed(next);
+    try {
+      window.localStorage.setItem(
+        "pomar-sidebar-collapsed-v1",
+        next ? "1" : "0",
+      );
+    } catch {}
+  };
   return (
-    <div className="application">
+    <div
+      className={`application ${sidebarCollapsed ? "application-sidebar-collapsed" : ""}`}
+    >
       <a className="skip-link" href="#main-content">
         Ir para o conteúdo
       </a>
@@ -211,7 +231,10 @@ function Shell({ initialView = "overview" }: { initialView?: View }) {
           onClick={() => setMobile(false)}
         />
       )}
-      <aside className={`sidebar ${mobile ? "sidebar-open" : ""}`}>
+      <aside
+        id="workspace-sidebar"
+        className={`sidebar ${mobile ? "sidebar-open" : ""}`}
+      >
         <div className="sidebar-brand">
           <Brand />
           <IconButton
@@ -286,8 +309,27 @@ function Shell({ initialView = "overview" }: { initialView?: View }) {
         <header className="app-header">
           <div className="header-title">
             <IconButton
+              label={
+                sidebarCollapsed
+                  ? "Expandir menu lateral"
+                  : "Recolher menu lateral"
+              }
+              className="desktop-menu-toggle"
+              aria-controls="workspace-sidebar"
+              aria-expanded={!sidebarCollapsed}
+              onClick={toggleSidebar}
+            >
+              {sidebarCollapsed ? (
+                <PanelLeftOpen size={20} />
+              ) : (
+                <PanelLeftClose size={20} />
+              )}
+            </IconButton>
+            <IconButton
               label="Abrir menu"
               className="mobile-only"
+              aria-controls="workspace-sidebar"
+              aria-expanded={mobile}
               onClick={() => setMobile(true)}
             >
               <Menu size={21} />
@@ -480,6 +522,8 @@ function Shell({ initialView = "overview" }: { initialView?: View }) {
         <button
           type="button"
           aria-label="Abrir todas as áreas"
+          aria-controls="workspace-sidebar"
+          aria-expanded={mobile}
           onClick={() => setMobile(true)}
         >
           <Menu size={20} />
