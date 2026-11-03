@@ -17,6 +17,9 @@ export default function Page() {
         isTest: true,
         qrCode: null,
         qrBase64: null,
+        cardEnabled: true,
+        paymentMethod: null,
+        maxInstallments: 12,
       }}
     />
   );

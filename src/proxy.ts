@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { parseEnvironment } from "@/lib/config/environment";
+import { isPublicPaymentRoute } from "@/lib/config/public-payment-routes";
 export async function proxy(request: NextRequest) {
   const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
   const development = process.env.NODE_ENV === "development";
@@ -28,7 +29,7 @@ export async function proxy(request: NextRequest) {
   headers.set("x-nonce", nonce);
   headers.set("Content-Security-Policy", csp);
   let response = NextResponse.next({ request: { headers } });
-  if (config) {
+  if (config && !isPublicPaymentRoute(request.nextUrl.pathname)) {
     const supabase = createServerClient(
       config.supabaseUrl,
       config.publishableKey,

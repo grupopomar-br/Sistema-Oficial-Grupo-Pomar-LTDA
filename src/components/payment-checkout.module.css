@@ -95,6 +95,44 @@
   max-width: 1080px;
   margin: 0 auto;
 }
+.loadingReceipt {
+  display: grid;
+  place-items: center;
+  color: var(--checkout-muted);
+  font-size: 13px;
+  margin-top: 34px;
+  height: 260px;
+  border: 1px solid var(--checkout-line);
+  border-radius: 20px;
+  background: #fff;
+}
+.loadingState {
+  min-height: 380px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  gap: 18px;
+  color: #63756d;
+}
+.loadingState h2 {
+  font-size: 22px;
+  font-weight: 560;
+  color: #183b30;
+  margin: 0;
+}
+.loadingState p {
+  font-size: 13px;
+  line-height: 1.7;
+  margin: 0;
+}
+.loadingLine {
+  width: 150px;
+  height: 5px;
+  border-radius: 10px;
+  background: linear-gradient(90deg, #e3e9d8, #71872c, #e3e9d8);
+}
 .header {
   height: 112px;
   display: flex;

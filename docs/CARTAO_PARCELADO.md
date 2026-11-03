@@ -6,6 +6,8 @@ O Mercado Pago também pode oferecer dinheiro em conta, opção que sua document
 
 **Estado da entrega:** código com testes locais de provedor simulado e PostgreSQL 17. Pagamento real/sandbox no Mercado Pago, condições comerciais e retorno no celular ainda exigem homologação. A opção começa desativada por padrão; Pix permanece independente.
 
+A prévia visual `/pagamento/visualizar` permite conferir Pix e cartão com dados fictícios, sem gerar cobrança nem redirecionar para pagar. A abertura, o contador e a conferência ao voltar do banco estão descritos em [CHECKOUT_DESEMPENHO.md](CHECKOUT_DESEMPENHO.md). A prévia não substitui a homologação no provedor.
+
 ## Ativação em ambiente isolado
 
 1. Use uma implantação de homologação e um banco de testes próprios, com registros fictícios, cadeia de migrações e credenciais de teste do mesmo vendedor/aplicação. Não mude o modo nem as credenciais da produção que já possui cobranças Pix em andamento.
