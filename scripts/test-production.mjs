@@ -107,13 +107,22 @@ try {
   assert.ok((await callback.text()).includes("não altera o estado financeiro"));
   const preview = await fetch(origin + "/pagamento/visualizar");
   assert.equal(preview.status, 200);
-  assert.ok((await preview.text()).includes("PRÉVIA VISUAL"));
+  const previewHtml = await preview.text();
+  assert.ok(previewHtml.includes("PRÉVIA VISUAL"));
+  assert.ok(previewHtml.includes('aria-label="Forma de pagamento"'));
+  assert.ok(previewHtml.includes('loading="eager"'));
+  assert.ok(previewHtml.includes('fetchPriority="high"'));
+  assert.ok(preview.headers.get("cache-control").includes("no-store"));
+  assert.ok(
+    preview.headers.get("content-security-policy").includes("'strict-dynamic'"),
+  );
   const checkoutToken = "A".repeat(43);
   const checkout = await fetch(
     origin + "/pagar/" + checkoutToken + "?status=approved",
   );
   assert.equal(checkout.status, 200);
   const checkoutHtml = await checkout.text();
+  assert.ok(checkoutHtml.includes("Estamos abrindo seu pagamento."));
   assert.ok(checkoutHtml.includes("Este link não está disponível."));
   assert.ok(!checkoutHtml.includes("Pagamento confirmado!"));
   assert.equal(checkout.headers.get("referrer-policy"), "no-referrer");

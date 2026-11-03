@@ -26,11 +26,13 @@ import { money } from "@/lib/domain/dates";
 import styles from "./payment-checkout.module.css";
 import { BrandLogo } from "./brand-logo";
 import { isSafeCheckoutUrl } from "@/lib/billing/safety";
+import { watchCheckoutPayment } from "@/lib/billing/checkout-polling";
+import PaymentCountdown from "./payment-countdown";
 
 function PaymentBrand() {
   return (
     <div className={styles.brand}>
-      <BrandLogo className={styles.wordmark} />
+      <BrandLogo className={styles.wordmark} eager />
       <small>Pagamentos</small>
     </div>
   );
@@ -48,25 +50,46 @@ export default function PaymentCheckout({
   initial,
   token,
   preview = false,
+  loadFailed = false,
 }: {
   initial: PixCheckout | null;
   token?: string;
   preview?: boolean;
+  loadFailed?: boolean;
 }) {
   const [checkout, setCheckout] = useState(initial);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [now, setNow] = useState(0);
+  const [deadlinePassed, setDeadlinePassed] = useState(false);
   const [choice, setChoice] = useState<"pix" | "card">("pix");
   const locked = useRef(false);
   const code = useRef<HTMLTextAreaElement>(null);
   const errorBox = useRef<HTMLParagraphElement>(null);
   useEffect(() => {
-    setNow(Date.now());
-    const timer = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(timer);
-  }, []);
+    if (
+      !checkout ||
+      !["ready", "pending", "processing"].includes(checkout.status)
+    )
+      return;
+    let timer: number | undefined;
+    const check = () => {
+      window.clearTimeout(timer);
+      const remaining = Date.parse(checkout.expiresAt) - Date.now();
+      setDeadlinePassed(remaining <= 0);
+      if (remaining > 0)
+        timer = window.setTimeout(
+          check,
+          Math.min(remaining + 1, 2_147_483_647),
+        );
+    };
+    check();
+    document.addEventListener("visibilitychange", check);
+    return () => {
+      window.clearTimeout(timer);
+      document.removeEventListener("visibilitychange", check);
+    };
+  }, [checkout?.expiresAt, checkout?.status]);
   const request = useCallback(
     async (body: unknown, silent = false) => {
       if (!token || locked.current) return;
@@ -108,26 +131,17 @@ export default function PaymentCheckout({
   useEffect(() => {
     if (preview || !["pending", "processing"].includes(checkout?.status ?? ""))
       return;
-    const timer = setInterval(() => {
-      if (document.visibilityState === "visible")
-        void request({ action: "refresh" }, true);
-    }, 25000);
-    return () => clearInterval(timer);
+    return watchCheckoutPayment(
+      () => void request({ action: "refresh" }, true),
+    );
   }, [checkout?.status, preview, request]);
   useEffect(() => {
     if (error) errorBox.current?.focus();
   }, [error]);
 
-  const seconds =
-    checkout && now
-      ? Math.max(
-          0,
-          Math.floor((new Date(checkout.expiresAt).valueOf() - now) / 1000),
-        )
-      : null;
   const expired =
     checkout?.status === "expired" ||
-    (seconds === 0 &&
+    (deadlinePassed &&
       ["ready", "pending", "processing"].includes(checkout?.status ?? ""));
   const status = expired ? "expired" : checkout?.status;
   const paid = status === "paid";
@@ -137,12 +151,6 @@ export default function PaymentCheckout({
   const unavailable = !checkout;
   const terminal =
     paid || ["closed", "expired", "review"].includes(status ?? "");
-  const countdown =
-    seconds === null
-      ? "Conferindo validade"
-      : seconds >= 3600
-        ? `${Math.floor(seconds / 3600)}h ${String(Math.floor((seconds % 3600) / 60)).padStart(2, "0")}min`
-        : `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
 
   async function generate(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -273,7 +281,7 @@ export default function PaymentCheckout({
                 <i>
                   {status !== "ready" && checkout ? <Check size={12} /> : "1"}
                 </i>
-                Seus dados
+                {cardMode ? "Forma de pagamento" : "Seus dados"}
               </span>
               <b />
               <span
@@ -354,11 +362,26 @@ export default function PaymentCheckout({
                   <span className={styles.stateIcon}>
                     <LockKeyhole size={30} />
                   </span>
-                  <h3>Este link não está disponível.</h3>
+                  <h3>
+                    {loadFailed
+                      ? "Vamos tentar novamente?"
+                      : "Este link não está disponível."}
+                  </h3>
                   <p>
-                    Confira o endereço recebido ou solicite um novo link ao
-                    Grupo Pomar.
+                    {loadFailed
+                      ? "Não foi possível abrir a cobrança agora. Tente novamente neste mesmo link."
+                      : "Confira o endereço recebido ou solicite um novo link ao Grupo Pomar."}
                   </p>
+                  {loadFailed && (
+                    <button
+                      type="button"
+                      className={styles.secondary}
+                      onClick={() => window.location.reload()}
+                    >
+                      <RefreshCw size={16} />
+                      Tentar novamente
+                    </button>
+                  )}
                 </div>
               ) : terminal ? (
                 <div className={styles.state} role="status" aria-live="polite">
@@ -505,6 +528,7 @@ export default function PaymentCheckout({
                       <input
                         name="name"
                         autoComplete="name"
+                        enterKeyHint="next"
                         placeholder="Como você se chama?"
                         minLength={3}
                         maxLength={120}
@@ -518,6 +542,7 @@ export default function PaymentCheckout({
                         name="email"
                         type="email"
                         autoComplete="email"
+                        enterKeyHint="next"
                         placeholder="seu@email.com"
                         maxLength={254}
                         required
@@ -530,6 +555,7 @@ export default function PaymentCheckout({
                         name="document"
                         inputMode="numeric"
                         autoComplete="off"
+                        enterKeyHint="go"
                         placeholder="Documento do pagador"
                         maxLength={24}
                         required
@@ -607,7 +633,8 @@ export default function PaymentCheckout({
                   </div>
                   <span className={styles.timer}>
                     <Clock3 size={14} />
-                    Válido por {countdown}
+                    Válido por{" "}
+                    <PaymentCountdown expiresAt={checkout.expiresAt} />
                   </span>
                   <button
                     type="button"
@@ -686,13 +713,15 @@ export default function PaymentCheckout({
         >
           <details>
             <summary>
-              Como pagar usando o mesmo celular?
+              {cardMode
+                ? "Como funciona o parcelamento?"
+                : "Como pagar usando o mesmo celular?"}
               <ChevronDown size={16} />
             </summary>
             <p>
-              Toque em Copiar código Pix, abra o aplicativo do seu banco e
-              escolha Pix Copia e Cola. Cole o código, confira os dados e
-              confirme no banco.
+              {cardMode
+                ? "Continue no Mercado Pago, selecione o cartão e confira as parcelas disponíveis, os juros e o valor total antes de confirmar. As opções dependem do cartão e do valor da cobrança."
+                : "Toque em Copiar código Pix, abra o aplicativo do seu banco e escolha Pix Copia e Cola. Cole o código, confira os dados e confirme no banco."}
             </p>
           </details>
           <details>
