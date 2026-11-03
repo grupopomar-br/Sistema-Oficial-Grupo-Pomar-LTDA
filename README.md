@@ -6,6 +6,8 @@ Sistema interno do Grupo Pomar para um único proprietário. Reúne direção di
 
 A identidade visual, a base de metodologias, a foto de perfil e a política de sessão estão descritas em [PERSONALIZACAO.md](docs/PERSONALIZACAO.md), com atualização manual compatível com a conta existente.
 
+No computador, o botão ao lado do título recolhe ou expande o menu lateral para liberar a largura do conteúdo. A escolha fica salva apenas nesse navegador. No celular, o menu continua abrindo pela lateral, com os atalhos inferiores disponíveis.
+
 ## O que já foi implementado
 
 | Área         | Recursos                                                                                                                                               |
