@@ -6,9 +6,14 @@ import { databaseFailure } from "./workspace";
 import {
   emptyNotifications,
   notificationListSchema,
+  pushMessage,
 } from "../notifications/contracts";
 export async function readNotifications(supabase: SupabaseClient) {
-  const { data, error } = await supabase.rpc("pomar_notifications_list");
+  let { data, error } = await supabase.rpc(
+    "pomar_notifications_list_personalized",
+  );
+  if (error?.code === "PGRST202")
+    ({ data, error } = await supabase.rpc("pomar_notifications_list"));
   if (error?.code === "PGRST202") return { ...emptyNotifications };
   if (error) throw databaseFailure(error);
   let pushConfigured = false,
@@ -20,9 +25,16 @@ export async function readNotifications(supabase: SupabaseClient) {
       publicKey = c.publicKey;
     }
   } catch {}
-  return notificationListSchema.parse({
+  const result = notificationListSchema.parse({
     ...(camelize(data) as object),
     pushConfigured,
     publicKey,
   });
+  return {
+    ...result,
+    items: result.items.map((item) => {
+      const message = pushMessage(item.kind, item.sourceId, item);
+      return { ...item, title: message.title, message: message.body };
+    }),
+  };
 }

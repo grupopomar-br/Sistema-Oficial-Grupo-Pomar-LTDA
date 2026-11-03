@@ -210,7 +210,12 @@ export default function Collections(props: ViewProps) {
             <div className="review-row" key={payment.id}>
               <div>
                 <strong>Pagamento #{payment.providerPaymentId}</strong>
-                <p>{payment.reviewReason}</p>
+                <p>
+                  {payment.paymentMethod === "credit_card" &&
+                  payment.reviewReason === "Data de aprovação não confirmada."
+                    ? "Cartão aprovado. A disponibilidade do valor no Mercado Pago ainda precisa ser conferida."
+                    : payment.reviewReason}
+                </p>
                 <small>
                   {payment.mode === "test" ? "Teste · " : ""}
                   {fullDate(payment.paidOn)}
@@ -218,7 +223,9 @@ export default function Collections(props: ViewProps) {
               </div>
               <div className="review-amount">
                 <strong>{format(payment.amountCents)}</strong>
-                {payment.providerPaymentId.startsWith("ORD") &&
+                {(payment.providerPaymentId.startsWith("ORD") ||
+                  (payment.paymentMethod === "credit_card" &&
+                    payment.fundsAvailable === true)) &&
                 payment.status === "approved" &&
                 payment.reviewReason === "Data de aprovação não confirmada." &&
                 !payment.receiptId ? (
@@ -251,7 +258,9 @@ export default function Collections(props: ViewProps) {
                   >
                     {reconciling === payment.providerPaymentId
                       ? "Conferindo..."
-                      : "Conferir agora"}
+                      : payment.paymentMethod === "credit_card"
+                        ? "Conferir liberação"
+                        : "Conferir agora"}
                   </Button>
                 )}
               </div>

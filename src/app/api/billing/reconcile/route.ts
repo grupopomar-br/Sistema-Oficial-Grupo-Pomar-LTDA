@@ -105,12 +105,21 @@ export async function POST(request: Request) {
     stage = "confirmation";
     if (input.confirmedPaidOn) {
       if (
-        !orderIdPattern.test(input.paymentId) ||
+        (!orderIdPattern.test(input.paymentId) &&
+          payment.paymentMethod !== "credit_card") ||
         payment.status !== "approved" ||
         payment.refundedCents !== 0
       )
         throw new AccessError(
           "Confira o estado atual do pagamento antes de informar a data.",
+          409,
+        );
+      if (
+        payment.paymentMethod === "credit_card" &&
+        payment.fundsAvailable !== true
+      )
+        throw new AccessError(
+          "O cartão foi aprovado, mas a liberação do valor ainda não foi confirmada no Mercado Pago. Confira novamente quando o valor estiver disponível.",
           409,
         );
       if (payment.paidOn && payment.paidOn !== input.confirmedPaidOn)

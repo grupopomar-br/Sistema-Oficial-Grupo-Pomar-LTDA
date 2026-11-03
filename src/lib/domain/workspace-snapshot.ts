@@ -8,12 +8,18 @@ type WorkspaceRpcResult<T> = {
 export async function fetchWorkspaceSnapshot<T>(
   rpc: (
     name:
+      | "pomar_workspace_cards"
+      | "pomar_workspace_results"
       | "pomar_workspace_scheduled"
       | "pomar_workspace_personalized"
       | "pomar_workspace_enriched"
       | "pomar_workspace",
   ) => PromiseLike<WorkspaceRpcResult<T>>,
 ): Promise<WorkspaceRpcResult<T>> {
+  const cards = await rpc("pomar_workspace_cards");
+  if (cards.error?.code !== "PGRST202") return cards;
+  const results = await rpc("pomar_workspace_results");
+  if (results.error?.code !== "PGRST202") return results;
   const scheduled = await rpc("pomar_workspace_scheduled");
   if (scheduled.error?.code !== "PGRST202") return scheduled;
   const personalized = await rpc("pomar_workspace_personalized");

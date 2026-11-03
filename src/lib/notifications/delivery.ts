@@ -9,6 +9,14 @@ export const deliveriesSchema = z
       sourceId: z.uuid(),
       expiresAt: z.iso.datetime({ offset: true }),
       subscription: subscriptionSchema,
+      amountCents: z
+        .number()
+        .int()
+        .positive()
+        .max(100_000_000_000)
+        .nullable()
+        .optional(),
+      meetingStartsAt: z.iso.datetime({ offset: true }).nullable().optional(),
     }),
   )
   .max(50);
@@ -30,13 +38,16 @@ export async function deliverBatch(
   const outcomes = await Promise.all(
     jobs.map(async (job) => {
       let outcome: DeliveryOutcome = "failed";
-      if (await actions.valid(job)) {
+      if (
+        !(job.kind === "sale" && job.amountCents === null) &&
+        (await actions.valid(job))
+      ) {
         const seconds = Math.floor((Date.parse(job.expiresAt) - now) / 1000);
         if (seconds > 0) {
           try {
             await actions.send(
               job,
-              pushMessage(job.kind, job.sourceId),
+              pushMessage(job.kind, job.sourceId, job),
               Math.min(3600, seconds),
             );
             outcome = "sent";

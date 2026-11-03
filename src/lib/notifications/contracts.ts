@@ -39,6 +39,14 @@ export const notificationSchema = z.strictObject({
   sourceId: z.uuid(),
   occurredAt: z.iso.datetime({ offset: true }),
   readAt: z.iso.datetime({ offset: true }).nullable(),
+  amountCents: z
+    .number()
+    .int()
+    .positive()
+    .max(100_000_000_000)
+    .nullable()
+    .optional(),
+  meetingStartsAt: z.iso.datetime({ offset: true }).nullable().optional(),
 });
 export type AppNotification = z.infer<typeof notificationSchema>;
 export const notificationListSchema = z.strictObject({
@@ -61,21 +69,54 @@ export const emptyNotifications: NotificationList = {
 export function pushMessage(
   kind: "sale" | "meeting" | "test",
   sourceId: string,
+  details: {
+    amountCents?: number | null;
+    meetingStartsAt?: string | null;
+  } = {},
 ) {
+  const amount =
+    kind === "sale" &&
+    Number.isSafeInteger(details.amountCents) &&
+    details.amountCents! > 0 &&
+    details.amountCents! <= 100_000_000_000
+      ? details.amountCents!
+      : null;
+  const at =
+    kind === "meeting" &&
+    details.meetingStartsAt &&
+    Number.isFinite(Date.parse(details.meetingStartsAt))
+      ? details.meetingStartsAt
+      : null;
+  const phrases = [
+    "Mais um passo para construir o Grupo Pomar. 💚",
+    "Uma conquista de cada vez. Seguimos em frente. 💚",
+    "Continue com constância. Seu trabalho está avançando. 💚",
+  ];
+  const phrase =
+    phrases[
+      (parseInt(sourceId.replaceAll("-", "").slice(-2), 16) || 0) %
+        phrases.length
+    ];
   return {
     kind,
     sourceId,
+    amountCents: amount,
+    meetingStartsAt: at,
     title:
       kind === "sale"
-        ? "Pagamento Pix confirmado"
+        ? amount === null
+          ? "Pagamento confirmado 💚"
+          : `Pagamento confirmado · ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(amount / 100)}`
         : kind === "meeting"
-          ? "Lembrete de reunião"
-          : "Notificações do Grupo Pomar",
+          ? at
+            ? `Sua reunião é às ${new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: "America/Fortaleza" }).format(new Date(at))}`
+            : "Sua próxima reunião está chegando"
+          : "Tudo pronto por aqui 💚",
     body:
       kind === "sale"
-        ? "Abra a Central para conferir o recebimento."
+        ? phrase
         : kind === "meeting"
-          ? "Confira o horário e os detalhes na sua Central."
-          : "Este aparelho está recebendo os avisos da sua Central.",
+          ? "Reserve um momento para a pauta. Uma boa conversa começa com preparo."
+          : "Seus avisos estão ativos. Agora é foco no que faz o Grupo Pomar avançar.",
   };
 }

@@ -1,4 +1,9 @@
 import "server-only";
+import {
+  cardCheckoutEnabled,
+  createCardPreference,
+  findCardPayments,
+} from "../billing/card";
 import { createHash, randomBytes } from "node:crypto";
 import { parseBillingConfig, type BillingConfig } from "../config/billing";
 import { billingDatabase, applyVerifiedPayment } from "./billing-worker";
@@ -35,15 +40,23 @@ export async function attachPixCheckout(
 async function read(config: BillingConfig, token: string) {
   if (!checkoutTokenPattern.test(token)) return null;
   const sql = billingDatabase(config);
-  const rows =
-    await sql`select pomar_private.pix_checkout_read(${hash(token)}) as checkout`;
+  const capability =
+    await sql`select to_regprocedure('pomar_private.checkout_read_with_card(text)') is not null as available`;
+  if (typeof capability[0]?.available !== "boolean")
+    throw new Error("Capacidade do checkout indisponível.");
+  const rows = capability[0].available
+    ? await sql`select pomar_private.checkout_read_with_card(${hash(token)}) as checkout`
+    : await sql`select pomar_private.pix_checkout_read(${hash(token)}) as checkout`;
   const row = rows[0]?.checkout;
   return row?.mode === config.mode && row?.collector_id === config.collectorId
     ? row
     : null;
 }
 // Deliberately projects a small payment view, never the operational workspace or payer PII.
-function publicView(row: Awaited<ReturnType<typeof read>>): PixCheckout | null {
+function publicView(
+  row: Awaited<ReturnType<typeof read>>,
+  config: BillingConfig,
+): PixCheckout | null {
   if (!row) return null;
   return {
     status: row.status,
@@ -54,6 +67,12 @@ function publicView(row: Awaited<ReturnType<typeof read>>): PixCheckout | null {
     isTest: row.mode === "test",
     qrCode: row.status === "pending" ? row.qr_code : null,
     qrBase64: row.status === "pending" ? row.qr_base64 : null,
+    cardEnabled:
+      cardCheckoutEnabled(process.env, config.mode) &&
+      row.card_available === true,
+    paymentMethod: row.chosen_method ?? null,
+    cardUrl: row.chosen_method === "card" ? (row.card_url ?? null) : null,
+    maxInstallments: Number(row.max_installments ?? 12),
   };
 }
 export async function readPixCheckout(
@@ -61,7 +80,7 @@ export async function readPixCheckout(
 ): Promise<PixCheckout | null> {
   const config = parseBillingConfig(process.env);
   if (!config.enabled) return null;
-  return publicView(await read(config, token));
+  return publicView(await read(config, token), config);
 }
 export async function generatePix(
   config: BillingConfig,
@@ -88,11 +107,57 @@ export async function generatePix(
     await sql`select pomar_private.pix_checkout_order(${hash(token)},${result.orderId})`;
     return refreshPix(config, token);
   }
-  return publicView(await read(config, token));
+  return publicView(await read(config, token), config);
+}
+export async function generateCard(config: BillingConfig, token: string) {
+  if (
+    !checkoutTokenPattern.test(token) ||
+    !cardCheckoutEnabled(process.env, config.mode)
+  )
+    return null;
+  const sql = billingDatabase(config);
+  const rows =
+    await sql`select pomar_private.card_checkout_begin(${hash(token)}) as checkout`;
+  const row = rows[0]?.checkout;
+  if (row?.create === true) {
+    if (row.mode !== config.mode || row.collector_id !== config.collectorId)
+      throw new Error("Ambiente divergente.");
+    const result = await createCardPreference(
+      config,
+      {
+        id: row.charge_id,
+        amountCents: Number(row.amount_cents),
+        expiresAt: row.expires_at,
+        mode: row.mode,
+      },
+      token,
+    );
+    // The URL is exposed only after this attach commits. An orphan preference
+    // from a crashed request was never shown to the customer and cannot be paid here.
+    await sql`select pomar_private.card_checkout_attach(${hash(token)},${row.lease}::uuid,${result.preferenceId},${result.checkoutUrl},${result.maxInstallments})`;
+  }
+  return publicView(await read(config, token), config);
 }
 export async function refreshPix(config: BillingConfig, token: string) {
   if (!checkoutTokenPattern.test(token)) return null;
   const sql = billingDatabase(config);
+  const checkout = await read(config, token);
+  if (checkout?.chosen_method === "card") {
+    const poll =
+      await sql`select pomar_private.card_checkout_poll(${hash(token)}) as allowed`;
+    if (poll[0]?.allowed === true) {
+      const payments = await findCardPayments(config, {
+        id: checkout.charge_id,
+        amountCents: Number(checkout.amount_cents),
+        expiresAt: checkout.expires_at,
+        mode: checkout.mode,
+        createdAt: checkout.created_at,
+      });
+      for (const payment of payments)
+        await applyVerifiedPayment(config, payment);
+    }
+    return publicView(await read(config, token), config);
+  }
   const rows =
     await sql`select pomar_private.pix_checkout_refresh(${hash(token)}) as payment_id`;
   const id = rows[0]?.payment_id;
@@ -115,5 +180,5 @@ export async function refreshPix(config: BillingConfig, token: string) {
         await fetchVerifiedTransaction(config, id),
       );
   }
-  return publicView(await read(config, token));
+  return publicView(await read(config, token), config);
 }

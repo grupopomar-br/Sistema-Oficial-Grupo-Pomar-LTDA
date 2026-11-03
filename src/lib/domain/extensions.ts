@@ -106,6 +106,8 @@ export const providerPaymentSchema = z.strictObject({
   paidOn: date.nullable(),
   providerUpdatedAt: timestamp,
   reviewReason: z.string().max(300),
+  paymentMethod: z.enum(["credit_card", "account_money"]).nullable().optional(),
+  fundsAvailable: z.boolean().nullable().optional(),
 });
 export const refundSchema = z.strictObject({
   ...base,

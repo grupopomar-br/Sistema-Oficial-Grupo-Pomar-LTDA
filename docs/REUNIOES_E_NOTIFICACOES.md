@@ -13,7 +13,7 @@ Aprovações existentes na instalação entram em uma baseline privada, para evi
 ## Canais
 
 - **Na Central:** sino e aba Notificações, com filtros, contagem de não lidos e marcação de leitura. A consulta ocorre ao abrir e periodicamente durante atividade; não mantém uma sessão ociosa viva.
-- **No aparelho:** Web Push criptografado, mediante ativação explícita em cada navegador/aparelho. A mensagem externa é genérica, sem valores, nomes de clientes, pauta ou documentos na tela bloqueada. Ao tocar, a Central exige seu acesso normal.
+- **No aparelho:** Web Push criptografado, mediante ativação explícita em cada navegador/aparelho. Após a personalização, pagamentos mostram o valor confirmado e uma frase curta; reuniões mostram o horário em Fortaleza. Não enviam nomes de clientes, pauta, documento ou dados do pagador. O valor pode aparecer na tela bloqueada, conforme solicitado pelo proprietário. Ao tocar, a Central exige seu acesso normal.
 - A ativação permite avisos em segundo plano até desativar o aparelho ou revogar sua permissão. O limite é de dez aparelhos ativos. Não há e-mail, WhatsApp ou convite automático nesta entrega.
 
 No iPhone, use iOS 16.4 ou posterior, adicione a Central à Tela de Início e abra por esse ícone para ativar os avisos. Em navegadores compatíveis Android/desktop, ative em Notificações. A PWA tem manifesto e ícones da marca; o service worker trata apenas push e não armazena páginas ou respostas privadas para uso offline.
@@ -39,3 +39,11 @@ Como em outros sistemas Web Push, uma queda entre a aceitação do provedor de p
 A agenda usa RLS forçado, auditoria e conflito de edição. Avisos não podem ser fabricados pelo navegador; somente a leitura pode ser marcada. Tokens de aparelhos ficam em esquema privado. O worker não lê tabelas de clientes, financeiro ou agenda diretamente. Endpoints push são limitados aos provedores reconhecidos (Google, Mozilla, Apple e Windows); URLs locais, credenciais e portas alternativas são rejeitadas. Erros de envio retornam contagens, sem registrar tokens ou conteúdo sensível.
 
 Os testes usam PostgreSQL 17, cenários fictícios e envio push controlado. A instalação do SQL, o agendador, o aparelho real e a permissão nativa exigem conferência após a configuração manual. Nenhuma notificação externa foi enviada durante os testes locais.
+
+## Mensagens e identidade
+
+Aplicar uma vez [resultados_google_e_avisos_personalizados](../supabase/migrations/20261103041048_resultados_google_e_avisos_personalizados.sql). Os RPCs adicionais projetam só o valor da aprovação live vinculada à cobrança e o horário do lembrete. O papel de envio continua sem CRUD. Enquanto o SQL estiver pendente, o envio anterior continua compatível, com mensagem sem preço. Falhas de acesso ou banco não são ocultadas.
+
+O texto motivacional é curto e estável para o mesmo evento, inclusive em novas tentativas de envio. O service worker monta mensagens fixas a partir desses dados validados: ignora texto e destinos arbitrários. Ícones do app, Apple Touch Icon, favicon e avisos usam o emblema metálico fornecido pelo proprietário. O desenho do emblema é preservado; há somente ajuste da área externa e versões de tamanho.
+
+Apps já adicionados à Tela de Início podem preservar o ícone anterior segundo o navegador/sistema. A atualização do ícone instalado e a aparência final dos novos avisos precisam ser conferidas no aparelho; não remover inscrições ou apagar dados do usuário automaticamente.

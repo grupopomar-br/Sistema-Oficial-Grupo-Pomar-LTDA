@@ -11,8 +11,18 @@ export default function manifest(): MetadataRoute.Manifest {
     theme_color: "#173e30",
     lang: "pt-BR",
     icons: [
-      { src: "/brand/pomar-app-192.png", sizes: "192x192", type: "image/png" },
-      { src: "/brand/pomar-app-512.png", sizes: "512x512", type: "image/png" },
+      {
+        src: "/brand/pomar-metal-192.png",
+        sizes: "192x192",
+        type: "image/png",
+        purpose: "any",
+      },
+      {
+        src: "/brand/pomar-metal-512.png",
+        sizes: "512x512",
+        type: "image/png",
+        purpose: "any",
+      },
     ],
   };
 }

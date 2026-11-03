@@ -1,0 +1,427 @@
+.view {
+  min-width: 0;
+}
+.hero {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 24px;
+  padding: 12px 0 20px;
+}
+.hero h2 {
+  font-size: clamp(30px, 3.5vw, 46px);
+  font-weight: 560;
+  line-height: 1.16;
+  letter-spacing: -0.045em;
+  margin: 15px 0 16px;
+}
+.hero h2 em {
+  font-weight: 520;
+  background: linear-gradient(110deg, #71872c 4%, #123e2e 92%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.hero p {
+  color: var(--muted);
+  max-width: 470px;
+  line-height: 1.65;
+}
+.heroActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.filters {
+  display: grid;
+  grid-template-columns: minmax(150px, 1fr) minmax(150px, 1fr) auto;
+  gap: 16px;
+  align-items: end;
+}
+.filters label,
+.periods label {
+  margin-bottom: 0;
+}
+.toggles {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 12px 0;
+}
+.report {
+  overflow: hidden;
+}
+.reportHeader {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 28px 30px;
+  border-bottom: 1px solid var(--line);
+  background: linear-gradient(115deg, #f3f6ec, #fff 80%);
+}
+.reportHeader h3 {
+  font-size: clamp(25px, 3vw, 34px);
+  font-weight: 560;
+  letter-spacing: -0.04em;
+  margin: 12px 0 5px;
+  overflow-wrap: anywhere;
+}
+.reportHeader p {
+  color: var(--muted);
+  margin: 0;
+}
+.reportBadges {
+  display: flex;
+  gap: 14px;
+  flex-direction: column;
+  align-items: flex-end;
+  flex-shrink: 0;
+}
+.profileLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+.periods {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  align-items: end;
+  gap: 18px;
+  padding: 24px 30px;
+}
+.collected {
+  color: var(--muted);
+  line-height: 1.8;
+  font-size: 11px;
+  margin: 0;
+}
+.collected strong {
+  color: var(--ink);
+  font-weight: 500;
+}
+.note {
+  margin: 0 30px 20px;
+  padding: 12px 16px;
+  font-size: 12px;
+  color: #786022;
+  background: #fbf8ed;
+  border: 1px solid #ece3c4;
+  border-radius: 10px;
+  line-height: 1.6;
+}
+.metricGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  background: var(--line);
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+.metric {
+  padding: 25px 28px;
+  background: white;
+  min-width: 0;
+}
+.metricTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  color: #647d50;
+  min-height: 34px;
+}
+.metricTop h4 {
+  font-size: 13px;
+  font-weight: 500;
+  margin: 0;
+  color: #304b3d;
+}
+.metricTop svg {
+  flex-shrink: 0;
+}
+.number {
+  display: block;
+  font-size: clamp(32px, 3.2vw, 44px);
+  letter-spacing: -0.05em;
+  font-weight: 560;
+  line-height: 1.2;
+  margin: 10px 0 12px;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.missing {
+  font-size: 22px;
+  letter-spacing: -0.03em;
+  color: var(--muted);
+}
+.change {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  color: #3c6c42;
+  font-size: 13px;
+  min-height: 43px;
+}
+.change small {
+  flex-basis: 100%;
+  color: var(--muted);
+  font-size: 10px;
+  padding-left: 0;
+}
+.decline {
+  color: #a34934;
+}
+.bars {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  margin-top: 14px;
+}
+.bars > div {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 7px;
+  font-size: 10px;
+  color: var(--muted);
+}
+.bars i {
+  height: 7px;
+  background: #f1f4ec;
+  border-radius: 8px;
+  overflow: hidden;
+  display: block;
+}
+.bars b {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #8b9e4d, #214f37);
+  border-radius: inherit;
+}
+.bars .previousBar {
+  background: #c7d0be;
+}
+.bars small {
+  font-size: 10px;
+  max-width: 100px;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.metricHint {
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.7;
+  margin: 17px 0 0;
+}
+.reportFooter {
+  padding: 20px 30px;
+}
+.reportFooter > span {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #466d4b;
+  font-size: 11px;
+}
+.reportFooter p {
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.7;
+  max-width: 750px;
+  margin-bottom: 0;
+}
+.context {
+  padding: 24px 30px;
+}
+.context h3 {
+  font-size: 15px;
+  margin: 0 0 12px;
+}
+.context p {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.7;
+  color: var(--muted);
+  margin: 0;
+}
+.history > div:first-child {
+  padding: 22px 28px;
+}
+.history h3 {
+  margin: 8px 0 0;
+  font-size: 17px;
+}
+.historyRows article {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 17px 28px;
+  border-top: 1px solid var(--line);
+}
+.periodButton {
+  display: flex;
+  gap: 13px;
+  align-items: center;
+  background: transparent;
+  border: 0;
+  text-align: left;
+  color: var(--ink);
+  padding: 0;
+  cursor: pointer;
+}
+.periodButton svg {
+  color: #78936b;
+  flex-shrink: 0;
+}
+.periodButton span {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.periodButton strong {
+  font-weight: 500;
+  font-size: 12px;
+}
+.periodButton small {
+  color: var(--muted);
+  font-size: 10px;
+}
+.rowActions {
+  display: flex;
+  gap: 6px;
+}
+.sourceNote {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.8;
+}
+.sourceNote a {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #426c43;
+}
+.formIntro {
+  color: var(--muted);
+  line-height: 1.7;
+  font-size: 12px;
+}
+@media (max-width: 1100px) {
+  .hero {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .filters {
+    grid-template-columns: 1fr 1fr;
+  }
+  .toggles {
+    grid-column: 1 / -1;
+    padding: 0;
+  }
+  .metricGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .periods {
+    grid-template-columns: 1fr 1fr;
+  }
+  .collected {
+    grid-column: 1 / -1;
+  }
+  .collected br {
+    display: none;
+  }
+}
+@media (max-width: 600px) {
+  .hero {
+    padding-top: 6px;
+    gap: 10px;
+  }
+  .hero h2 {
+    font-size: 36px;
+  }
+  .heroActions {
+    width: 100%;
+  }
+  .heroActions button {
+    flex: 1;
+  }
+  .filters {
+    grid-template-columns: 1fr;
+  }
+  .toggles {
+    gap: 12px;
+  }
+  .reportHeader {
+    padding: 23px 20px;
+    flex-direction: column;
+  }
+  .reportBadges {
+    align-items: flex-start;
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+  .periods {
+    grid-template-columns: 1fr;
+    padding: 20px;
+  }
+  .collected {
+    grid-column: auto;
+  }
+  .metric {
+    padding: 21px 17px;
+  }
+  .metricTop {
+    min-height: 40px;
+  }
+  .metricTop h4 {
+    font-size: 12px;
+  }
+  .metricTop svg {
+    width: 16px;
+  }
+  .number {
+    font-size: 34px;
+  }
+  .missing {
+    font-size: 19px;
+  }
+  .bars > div {
+    grid-template-columns: 35px 1fr;
+  }
+  .bars small {
+    grid-column: 2;
+  }
+  .metricHint {
+    font-size: 10px;
+  }
+  .reportFooter {
+    padding: 20px;
+  }
+  .note {
+    margin-left: 20px;
+    margin-right: 20px;
+  }
+  .context {
+    padding: 22px 20px;
+  }
+  .historyRows article {
+    padding: 17px 20px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 13px;
+  }
+  .rowActions {
+    justify-content: flex-end;
+  }
+}
+@media (max-width: 360px) {
+  .metricGrid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -8,6 +8,7 @@ import {
   extensionCommands,
 } from "./extensions.ts";
 import { meetingSchema, meetingCommand } from "./meetings.ts";
+import { googleResultSchema, googleResultCommand } from "./google-results.ts";
 import { newId } from "./id.ts";
 import { z } from "zod";
 import { isDateOnly } from "./dates.ts";
@@ -191,6 +192,8 @@ export const workspaceSchema = z.strictObject({
   revision: z.number().int().min(0),
   personalizationReady: z.boolean().default(false),
   meetingsReady: z.boolean().default(false),
+  googleResultsReady: z.boolean().default(false),
+  googleResults: z.array(googleResultSchema).max(10000).default([]),
   meetings: z.array(meetingSchema).max(10000).default([]),
   settings: settingsSchema,
   profile: profileSchema.default({ avatarPath: "", version: 0 }),
@@ -222,6 +225,7 @@ export const commandSchema = z.discriminatedUnion("type", [
   ...extensionCommands,
   ...personalizationCommands,
   meetingCommand,
+  googleResultCommand,
   z.strictObject({ type: z.literal("saveClient"), value: clientSchema }),
   z.strictObject({ type: z.literal("saveArea"), value: areaSchema }),
   z.strictObject({ type: z.literal("saveProject"), value: projectSchema }),
@@ -309,6 +313,8 @@ export function emptyWorkspace(now = new Date().toISOString()): Workspace {
     revision: 0,
     personalizationReady: true,
     meetingsReady: true,
+    googleResultsReady: true,
+    googleResults: [],
     meetings: [],
     profile: { avatarPath: "", version: 0 },
     methodologies: [],

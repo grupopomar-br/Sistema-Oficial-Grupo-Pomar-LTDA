@@ -117,7 +117,7 @@ export function PushSettings() {
         <h3>Avisos neste aparelho</h3>
         <p>
           Receba confirmações de pagamento e lembretes de reuniões com a Central
-          fechada.
+          fechada. O valor confirmado pode aparecer na tela bloqueada.
         </p>
         {!feed.pushConfigured ? (
           <p className="inline-note">
