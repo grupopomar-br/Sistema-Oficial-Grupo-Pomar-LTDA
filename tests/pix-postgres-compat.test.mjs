@@ -56,7 +56,10 @@ test("PostgreSQL 17 concilia order confirmada sem ampliar permissões nem duplic
       insert into auth.users values('${owner}'),('${other}');`);
     await storageFixture(db);
     for (const file of (await readdir(migrations))
-      .filter((f) => f.endsWith(".sql") && f !== fix)
+      // Reproduce the historical deployment before the targeted repair. New
+      // wrappers deliberately have another source; current migrations are also
+      // exercised by the full-chain card and notification database fixtures.
+      .filter((f) => f.endsWith(".sql") && f < fix)
       .sort())
       await db.exec(await readFile(new URL(file, migrations), "utf8"));
     // SQL pasted from Windows must match the exact same source, including strings.

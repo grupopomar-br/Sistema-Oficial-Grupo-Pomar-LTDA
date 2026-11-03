@@ -14,6 +14,7 @@ import {
   ChevronDown,
   Clock3,
   Copy,
+  CreditCard,
   Loader2,
   LockKeyhole,
   QrCode,
@@ -24,6 +25,7 @@ import type { PixCheckout } from "@/lib/billing/pix-contract";
 import { money } from "@/lib/domain/dates";
 import styles from "./payment-checkout.module.css";
 import { BrandLogo } from "./brand-logo";
+import { isSafeCheckoutUrl } from "@/lib/billing/safety";
 
 function PaymentBrand() {
   return (
@@ -56,6 +58,7 @@ export default function PaymentCheckout({
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
   const [now, setNow] = useState(0);
+  const [choice, setChoice] = useState<"pix" | "card">("pix");
   const locked = useRef(false);
   const code = useRef<HTMLTextAreaElement>(null);
   const errorBox = useRef<HTMLParagraphElement>(null);
@@ -87,6 +90,7 @@ export default function PaymentCheckout({
           );
         setCheckout(data.checkout);
         setError("");
+        return data.checkout as PixCheckout;
       } catch (failure) {
         if (!silent)
           setError(
@@ -127,6 +131,9 @@ export default function PaymentCheckout({
       ["ready", "pending", "processing"].includes(checkout?.status ?? ""));
   const status = expired ? "expired" : checkout?.status;
   const paid = status === "paid";
+  const cardMode =
+    checkout?.paymentMethod === "card" ||
+    (status === "ready" && choice === "card");
   const unavailable = !checkout;
   const terminal =
     paid || ["closed", "expired", "review"].includes(status ?? "");
@@ -161,6 +168,11 @@ export default function PaymentCheckout({
         "Selecione o código abaixo e copie para pagar no aplicativo do seu banco.",
       );
     }
+  }
+  async function startCard() {
+    const next = await request({ action: "card" });
+    if (next?.cardUrl && isSafeCheckoutUrl(next.cardUrl))
+      window.location.assign(next.cardUrl);
   }
   function showPreview() {
     if (checkout)
@@ -206,7 +218,9 @@ export default function PaymentCheckout({
                     <QrCode size={19} />
                   </span>
                   <span>Resumo do pagamento</span>
-                  <span className={styles.pill}>Pix</span>
+                  <span className={styles.pill}>
+                    {cardMode ? "Cartão" : "Pix"}
+                  </span>
                 </div>
                 <h2>{checkout.description}</h2>
                 <p className={styles.reference}>
@@ -215,7 +229,11 @@ export default function PaymentCheckout({
                 <div className={styles.total}>
                   <span>Valor do pagamento</span>
                   <strong>{money(checkout.amountCents)}</strong>
-                  <small>Valor definido na sua cobrança.</small>
+                  <small>
+                    {cardMode
+                      ? "Valor da cobrança. As condições de parcelamento serão exibidas no Mercado Pago."
+                      : "Valor definido na sua cobrança."}
+                  </small>
                 </div>
                 <div className={styles.validity}>
                   <Clock3 size={15} />
@@ -228,10 +246,15 @@ export default function PaymentCheckout({
             <div className={styles.assurance}>
               <ShieldCheck size={22} />
               <p>
-                <strong>Do seu banco, direto para o pagamento.</strong>
+                <strong>
+                  {cardMode
+                    ? "Seu pagamento, com segurança."
+                    : "Do seu banco, direto para o pagamento."}
+                </strong>
                 <span>
-                  O Pix é processado pelo Mercado Pago. A confirmação aparece
-                  aqui após a verificação.
+                  {cardMode
+                    ? "Você informa o cartão no ambiente do Mercado Pago e confere as condições antes de confirmar."
+                    : "O Pix é processado pelo Mercado Pago. A confirmação aparece aqui após a verificação."}
                 </span>
               </p>
             </div>
@@ -272,15 +295,59 @@ export default function PaymentCheckout({
             <div className={styles.paymentBody}>
               <div className={styles.method}>
                 <span>
-                  <QrCode size={26} />
+                  {cardMode ? <CreditCard size={26} /> : <QrCode size={26} />}
                 </span>
                 <div>
                   <h2 id="pix-title">
-                    {paid ? "Tudo certo por aqui." : "Pague com Pix"}
+                    {paid
+                      ? "Tudo certo por aqui."
+                      : cardMode
+                        ? "Pague com cartão"
+                        : "Pague com Pix"}
                   </h2>
-                  <p>Simples, direto e pelo seu banco.</p>
+                  <p>
+                    {cardMode
+                      ? "Conclua com segurança no Mercado Pago."
+                      : "Simples, direto e pelo seu banco."}
+                  </p>
                 </div>
               </div>
+              {status === "ready" &&
+                checkout?.cardEnabled &&
+                !checkout.paymentMethod && (
+                  <div
+                    className={styles.paymentOptions}
+                    role="group"
+                    aria-label="Forma de pagamento"
+                  >
+                    <button
+                      type="button"
+                      aria-pressed={choice === "pix"}
+                      onClick={() => setChoice("pix")}
+                      disabled={busy}
+                    >
+                      <QrCode size={18} />
+                      <span>
+                        Pix<small>Direto pelo seu banco</small>
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      aria-pressed={choice === "card"}
+                      onClick={() => setChoice("card")}
+                      disabled={busy}
+                    >
+                      <CreditCard size={18} />
+                      <span>
+                        Cartão
+                        <small>
+                          Em até {checkout.maxInstallments ?? 12}x no Mercado
+                          Pago
+                        </small>
+                      </span>
+                    </button>
+                  </div>
+                )}
 
               {unavailable ? (
                 <div className={styles.state} role="status">
@@ -343,7 +410,11 @@ export default function PaymentCheckout({
               ) : status === "processing" ? (
                 <div className={styles.state} role="status" aria-live="polite">
                   <RefreshCw size={38} className={styles.spin} />
-                  <h3>Estamos preparando seu Pix.</h3>
+                  <h3>
+                    {cardMode
+                      ? "Estamos preparando seu checkout."
+                      : "Estamos preparando seu Pix."}
+                  </h3>
                   <p>
                     O Mercado Pago está processando a solicitação. Aguarde nesta
                     página; seu pedido será mantido.
@@ -355,6 +426,72 @@ export default function PaymentCheckout({
                   >
                     {busy ? "Conferindo…" : "Conferir novamente"}
                   </button>
+                  {cardMode && checkout.cardEnabled && (
+                    <button
+                      className={styles.secondary}
+                      disabled={busy}
+                      onClick={() => void startCard()}
+                    >
+                      Continuar no Mercado Pago
+                    </button>
+                  )}
+                </div>
+              ) : cardMode ? (
+                <div className={styles.cardPanel}>
+                  <span className={styles.stateIcon}>
+                    <CreditCard size={34} />
+                  </span>
+                  <h3>Escolha como parcelar.</h3>
+                  <p>
+                    Opções em até {checkout.maxInstallments ?? 12} parcelas,
+                    conforme o cartão, o valor e as condições disponíveis no
+                    Mercado Pago.
+                  </p>
+                  <div className={styles.cardConditions}>
+                    <ShieldCheck size={19} />
+                    <span>
+                      Confira o valor de cada parcela, os juros e o total antes
+                      de confirmar. Dados do cartão são preenchidos no Mercado
+                      Pago.
+                    </span>
+                  </div>
+                  {checkout.cardUrl && isSafeCheckoutUrl(checkout.cardUrl) ? (
+                    <a
+                      className={styles.primary}
+                      href={checkout.cardUrl}
+                      rel="noreferrer"
+                    >
+                      Continuar no Mercado Pago
+                      <ArrowRight size={17} />
+                    </a>
+                  ) : (
+                    <button
+                      type="button"
+                      className={styles.primary}
+                      disabled={busy || !checkout.cardEnabled || preview}
+                      onClick={() => void startCard()}
+                    >
+                      {busy ? (
+                        <Loader2 size={18} className={styles.spin} />
+                      ) : (
+                        <CreditCard size={18} />
+                      )}
+                      Continuar no Mercado Pago
+                    </button>
+                  )}
+                  <span className={styles.buttonNote}>
+                    Você pode voltar a este link para conferir a confirmação.
+                  </span>
+                  {status === "pending" && (
+                    <button
+                      className={styles.secondary}
+                      disabled={busy}
+                      onClick={() => void request({ action: "refresh" })}
+                    >
+                      <RefreshCw size={16} />
+                      Já paguei. Conferir pagamento
+                    </button>
+                  )}
                 </div>
               ) : status === "ready" ? (
                 <>

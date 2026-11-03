@@ -6,6 +6,91 @@
   --checkout-muted: #63756d;
   --checkout-line: #e3e8df;
 }
+.paymentOptions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin: 25px 0;
+}
+.paymentOptions button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 12px;
+  border: 1px solid #dfe5d9;
+  border-radius: 12px;
+  background: white;
+  color: #244b36;
+  text-align: left;
+  cursor: pointer;
+  min-width: 0;
+}
+.paymentOptions button[aria-pressed="true"] {
+  background: #f0f5e7;
+  border-color: #7b9647;
+  box-shadow: 0 0 0 1px #7b9647;
+}
+.paymentOptions button span {
+  font-size: 13px;
+  font-weight: 600;
+}
+.paymentOptions small {
+  display: block;
+  font-size: 10px;
+  font-weight: 400;
+  color: #617163;
+  margin-top: 3px;
+}
+.paymentOptions svg {
+  flex-shrink: 0;
+}
+.cardPanel {
+  text-align: center;
+  padding: 18px 0;
+}
+.cardPanel .stateIcon {
+  margin: 8px auto 22px;
+}
+.cardPanel h3 {
+  font-size: 24px;
+  font-weight: 560;
+  letter-spacing: -0.035em;
+  margin: 0 0 12px;
+}
+.cardPanel p {
+  font-size: 13px;
+  color: #63756d;
+  line-height: 1.7;
+}
+.cardPanel .primary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-decoration: none;
+  width: 100%;
+}
+.cardConditions {
+  display: flex;
+  gap: 10px;
+  text-align: left;
+  background: #f5f7f0;
+  border-radius: 12px;
+  padding: 16px;
+  margin: 24px 0;
+  color: #5c6d56;
+  font-size: 11px;
+  line-height: 1.7;
+}
+.cardConditions svg {
+  flex-shrink: 0;
+  margin-top: 3px;
+}
+@media (max-width: 380px) {
+  .paymentOptions {
+    grid-template-columns: 1fr;
+  }
+}
 .wrap {
   max-width: 1080px;
   margin: 0 auto;

@@ -52,4 +52,8 @@ export type PixCheckout = {
   isTest: boolean;
   qrCode: string | null;
   qrBase64: string | null;
+  cardEnabled?: boolean;
+  paymentMethod?: "pix" | "card" | null;
+  cardUrl?: string | null;
+  maxInstallments?: number;
 };

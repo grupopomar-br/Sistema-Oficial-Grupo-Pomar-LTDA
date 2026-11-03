@@ -8,6 +8,7 @@ import {
   type AuditEntry,
 } from "./model.ts";
 import { addMonthsClamped, todayDate } from "./dates.ts";
+import { googleProfileKey } from "./google-results.ts";
 
 export class BusinessError extends Error {
   code: string;
@@ -105,6 +106,7 @@ export function validateRelations(state: Workspace): void {
       "ideas",
       "methodologies",
       "meetings",
+      "googleResults",
       "collectionAgreements",
       "collectionActions",
       "charges",
@@ -141,6 +143,21 @@ export function validateRelations(state: Workspace): void {
         exists("projects", meeting.projectId),
       "Reunião possui vínculo inexistente.",
     );
+  const resultPeriods = new Set<string>();
+  for (const result of state.googleResults) {
+    required(
+      exists("clients", result.clientId),
+      "Resultado possui cliente inexistente.",
+    );
+    if (!result.archived) {
+      const key = `${googleProfileKey(result)}:${result.periodStart}:${result.periodEnd}`;
+      required(
+        !resultPeriods.has(key),
+        "Já existe um registro desse perfil para o mesmo período. Edite o registro existente.",
+      );
+      resultPeriods.add(key);
+    }
+  }
   for (const task of state.tasks) {
     required(
       exists("projects", task.projectId),
@@ -379,6 +396,20 @@ export function applyCommand(
       );
       break;
     }
+    case "saveGoogleResult":
+      required(
+        command.value.periodEnd <= todayDate(new Date(now)) &&
+          command.value.collectedOn <= todayDate(new Date(now)),
+        "As datas dos resultados não podem estar no futuro.",
+      );
+      save(state.googleResults, command.value);
+      log(
+        "google_result",
+        command.value.id,
+        command.value.archived ? "archive" : "save",
+        `Resultados do Google atualizados: ${command.value.profileName}`,
+      );
+      break;
     case "saveMethodology":
       save(state.methodologies, command.value);
       log(

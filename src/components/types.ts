@@ -1,6 +1,7 @@
 import type { Workspace } from "@/lib/domain/model";
 
 export type View =
+  | "results"
   | "meetings"
   | "notifications"
   | "methodologies"

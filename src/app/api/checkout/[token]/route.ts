@@ -3,6 +3,7 @@ import {
   readPixCheckout,
   generatePix,
   refreshPix,
+  generateCard,
 } from "@/lib/server/pix-checkout";
 import { parseBillingConfig } from "@/lib/config/billing";
 import { requireOrigin, AccessError } from "@/lib/server/access";
@@ -18,6 +19,7 @@ type Context = { params: Promise<{ token: string }> };
 const input = z.discriminatedUnion("action", [
   z.strictObject({ action: z.literal("generate"), payer: pixPayerSchema }),
   z.strictObject({ action: z.literal("refresh") }),
+  z.strictObject({ action: z.literal("card") }),
 ]);
 const unavailable = () =>
   json({ error: "Este link de pagamento não está disponível." }, 404);
@@ -45,9 +47,11 @@ export async function POST(request: Request, context: Context) {
     requireOrigin(request, config.appUrl);
     const data = input.parse(await boundedJson(request, 4096));
     const checkout =
-      data.action === "generate"
-        ? await generatePix(config, token, data.payer)
-        : await refreshPix(config, token);
+      data.action === "card"
+        ? await generateCard(config, token)
+        : data.action === "generate"
+          ? await generatePix(config, token, data.payer)
+          : await refreshPix(config, token);
     return checkout ? json({ checkout }) : unavailable();
   } catch (error) {
     if (error instanceof AccessError)
@@ -58,6 +62,30 @@ export async function POST(request: Request, context: Context) {
         400,
       );
     const code = error instanceof Error ? error.message : "";
+    if (code.includes("POMAR_METHOD_LOCKED"))
+      return json(
+        {
+          error:
+            "Esta cobrança já está em andamento por outro meio de pagamento. Atualize a página para conferir.",
+        },
+        409,
+      );
+    if (code.includes("POMAR_CARD_BUSY"))
+      return json(
+        {
+          error:
+            "O checkout está sendo preparado. Aguarde um minuto e confira novamente neste mesmo link.",
+        },
+        429,
+      );
+    if (code.includes("POMAR_CARD_EXPIRED"))
+      return json(
+        {
+          error:
+            "A validade deste link está terminando. Solicite um novo link ao Grupo Pomar.",
+        },
+        409,
+      );
     if (code.includes("POMAR_PIX_EXPIRED"))
       return json(
         {

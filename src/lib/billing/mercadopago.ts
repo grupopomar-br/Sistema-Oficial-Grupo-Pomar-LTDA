@@ -345,6 +345,8 @@ export type VerifiedPayment = {
   providerUpdatedAt: string;
   refunds: VerifiedRefund[];
   refundsComplete: boolean;
+  paymentMethod?: "credit_card" | "account_money";
+  fundsAvailable?: boolean | null;
 };
 export async function fetchVerifiedPayment(
   config: BillingConfig,
@@ -389,6 +391,27 @@ export async function fetchVerifiedPayment(
     if (!date.success) throw new ProviderError();
     paidOn = todayDate(new Date(date.data));
     if (paidOn > todayDate()) throw new ProviderError();
+  }
+  const card = raw.payment_type_id === "credit_card";
+  let fundsAvailable: boolean | null = null;
+  if (card) {
+    // Approval is not cash availability. A projected release date alone is not
+    // evidence of money received. Unknown availability stays in reconciliation.
+    fundsAvailable =
+      raw.money_release_status === "released"
+        ? true
+        : raw.money_release_status === "pending"
+          ? false
+          : null;
+    const released = z.iso
+      .datetime({ offset: true })
+      .safeParse(raw.money_release_date);
+    paidOn =
+      fundsAvailable === true &&
+      released.success &&
+      Date.parse(released.data) <= Date.now()
+        ? todayDate(new Date(released.data))
+        : null;
   }
   let feeCents: number | null = null;
   try {
@@ -451,5 +474,10 @@ export async function fetchVerifiedPayment(
     providerUpdatedAt: updated.data,
     refunds,
     refundsComplete,
+    ...(card
+      ? { paymentMethod: "credit_card" as const, fundsAvailable }
+      : raw.payment_type_id === "account_money"
+        ? { paymentMethod: "account_money" as const }
+        : {}),
   };
 }

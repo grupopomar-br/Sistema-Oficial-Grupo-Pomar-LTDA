@@ -29,7 +29,13 @@ function database(config: NotificationConfig) {
 }
 export async function dispatchNotifications(config: NotificationConfig) {
   const sql = database(config);
-  const rows = await sql`select public.pomar_notifications_claim(10) jobs`;
+  const capability =
+    await sql`select to_regprocedure('public.pomar_notifications_claim_personalized(integer)') is not null as available`;
+  if (typeof capability[0]?.available !== "boolean")
+    throw new Error("Capacidade de envio indisponível.");
+  const rows = capability[0].available
+    ? await sql`select public.pomar_notifications_claim_personalized(10) jobs`
+    : await sql`select public.pomar_notifications_claim(10) jobs`;
   const jobs = deliveriesSchema.parse(rows[0]?.jobs);
   return deliverBatch(jobs, {
     valid: async (job) =>

@@ -141,7 +141,11 @@ test("entrega verifica validade, limita TTL, desativa endpoint expirado e separa
       send: async (j, m, ttl) => {
         sent.push(j.id);
         assert.equal(ttl, 120);
-        assert.ok(!JSON.stringify(m).includes("amount"));
+        assert.equal(
+          m.amountCents,
+          null,
+          "sem valor verificado, o aviso não estima preço",
+        );
         if (j === jobs[1]) throw { statusCode: 410 };
         if (j === jobs[2]) throw { statusCode: 503 };
         if (j === jobs[3]) throw { statusCode: 400 };
@@ -198,7 +202,7 @@ test("service worker ignora texto e destinos arbitrários e não instala cache d
     },
   });
   await wait;
-  assert.equal(shown.t, "Pagamento Pix confirmado");
+  assert.equal(shown.t, "Pagamento confirmado 💚");
   assert.ok(!JSON.stringify(shown).includes("SEGREDO"));
   handlers.notificationclick({
     notification: { close() {}, data: { view: "https://evil.example" } },

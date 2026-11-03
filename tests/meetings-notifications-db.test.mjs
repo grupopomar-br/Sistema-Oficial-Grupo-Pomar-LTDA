@@ -23,11 +23,13 @@ test("PostgreSQL 17: reuniões, lembretes, vendas verificadas e entregas têm is
     await storageFixture(db);
     const migrations = new URL("../supabase/migrations/", import.meta.url);
     let agendaMigration = "";
+    const laterMigrations = [];
     for (const file of (await readdir(migrations))
       .filter((f) => f.endsWith(".sql"))
       .sort()) {
       const sql = await readFile(new URL(file, migrations), "utf8");
       if (file.includes("reunioes_e_notificacoes")) agendaMigration = sql;
+      else if (agendaMigration) laterMigrations.push(sql);
       else await db.exec(sql);
     }
     await db.exec(`insert into pomar_private.owner_registry values(true,'${owner}',true);insert into pomar_settings(owner_id,id,business_name,display_name) values('${owner}','${owner}','Empresa exemplo','Proprietário');
@@ -45,6 +47,7 @@ test("PostgreSQL 17: reuniões, lembretes, vendas verificadas e entregas têm is
       [owner, oldCharge],
     );
     await db.exec(agendaMigration);
+    for (const migration of laterMigrations) await db.exec(migration);
     async function admin() {
       await db.exec("set session authorization postgres;reset role");
     }
@@ -86,6 +89,76 @@ test("PostgreSQL 17: reuniões, lembretes, vendas verificadas e entregas têm is
       };
     await actor();
     await db.query("select pomar_touch_session_v2()");
+    const report = {
+      ...newBase(),
+      clientId: client,
+      profileName: "Perfil fictício",
+      profileUrl: "https://maps.google.com/",
+      periodStart: "2026-09-01",
+      periodEnd: "2026-09-30",
+      collectedOn: "2026-10-01",
+      interactions: 80,
+      calls: 0,
+      bookings: null,
+      directions: 30,
+      websiteClicks: 50,
+      profileViews: 1200,
+      notes: "Conferido em um exemplo de teste.",
+      verified: true,
+      archived: false,
+    };
+    const reportKey = crypto.randomUUID();
+    await rpc({ type: "saveGoogleResult", value: report }, reportKey);
+    assert.equal(
+      (await rpc({ type: "saveGoogleResult", value: report }, reportKey))
+        .duplicate,
+      true,
+    );
+    const reportRow = async () =>
+      (
+        await db.query("select * from pomar_google_results where id=$1", [
+          report.id,
+        ])
+      ).rows[0];
+    assert.equal(Number((await reportRow()).calls), 0);
+    assert.equal((await reportRow()).bookings, null, "ausência não vira zero");
+    await assert.rejects(
+      rpc({
+        type: "saveGoogleResult",
+        value: {
+          ...report,
+          id: crypto.randomUUID(),
+          profileName: "  perfil fictício  ",
+        },
+      }),
+      /duplicate key/,
+    );
+    await assert.rejects(
+      rpc({ type: "saveGoogleResult", value: { ...report, calls: 1.5 } }),
+      /POMAR_BAD_COMMAND/,
+    );
+    await assert.rejects(
+      rpc({
+        type: "saveGoogleResult",
+        value: {
+          ...report,
+          periodEnd: "2099-01-01",
+          collectedOn: "2099-01-02",
+        },
+      }),
+      /check constraint/,
+    );
+    await rpc({ type: "saveGoogleResult", value: { ...report, calls: 10 } });
+    await assert.rejects(
+      rpc({ type: "saveGoogleResult", value: report }),
+      /POMAR_CONFLICT/,
+    );
+    const resultsSnapshot = (
+      await db.query("select pomar_workspace_results() w")
+    ).rows[0].w;
+    assert.equal(resultsSnapshot.google_results_ready, true);
+    assert.equal(resultsSnapshot.google_results.length, 1);
+    assert.equal(resultsSnapshot.google_results[0].version, 2);
     await db.query("select pomar_push_device($1::jsonb,true)", [
       JSON.stringify(sub),
     ]);
@@ -186,13 +259,15 @@ test("PostgreSQL 17: reuniões, lembretes, vendas verificadas e entregas têm is
       "pomar_meetings",
       "pomar_provider_payments",
       "pomar_notifications",
+      "pomar_google_results",
     ])
       await assert.rejects(
         db.query(`select * from ${table}`),
         /permission denied/,
       );
-    let jobs = (await db.query("select pomar_notifications_claim(10) jobs"))
-      .rows[0].jobs;
+    let jobs = (
+      await db.query("select pomar_notifications_claim_personalized(10) jobs")
+    ).rows[0].jobs;
     assert.equal(jobs.length, 2);
     assert.equal(
       (await db.query("select pomar_notifications_claim(10) jobs")).rows[0].jobs
@@ -202,6 +277,12 @@ test("PostgreSQL 17: reuniões, lembretes, vendas verificadas e entregas têm is
     );
     const meetingJob = jobs.find((j) => j.kind === "meeting"),
       saleJob = jobs.find((j) => j.kind === "sale");
+    assert.equal(saleJob.amountCents, 10000);
+    assert.equal(
+      Date.parse(meetingJob.meetingStartsAt),
+      Date.parse(value.startsAt),
+    );
+    assert.equal(Object.hasOwn(saleJob, "client"), false);
     assert.equal(
       (
         await db.query("select pomar_notification_delivery_valid($1,$2) v", [
@@ -282,6 +363,22 @@ test("PostgreSQL 17: reuniões, lembretes, vendas verificadas e entregas têm is
     assert.equal(latest.meetings_ready, true);
     assert.equal(latest.meetings.length, 1);
     await actor(other);
+    assert.equal(
+      (await db.query("select count(*)::int n from pomar_google_results"))
+        .rows[0].n,
+      0,
+    );
+    await assert.rejects(
+      rpc({
+        type: "saveGoogleResult",
+        value: { ...report, id: crypto.randomUUID() },
+      }),
+      /POMAR_ACCESS/,
+    );
+    await assert.rejects(
+      db.query("select pomar_notifications_list_personalized()"),
+      /POMAR_ACCESS/,
+    );
     assert.equal(
       (await db.query("select count(*)::int n from pomar_meetings")).rows[0].n,
       0,

@@ -4,6 +4,7 @@ import { SessionBoundary } from "./session-boundary";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   LayoutDashboard,
+  BarChart3,
   CalendarClock,
   BookOpen,
   Lightbulb,
@@ -49,6 +50,9 @@ import { ProfileAvatar } from "./profile-avatar";
 const Meetings = dynamic(() => import("./views/meetings"), {
   loading: Skeleton,
 });
+const GoogleResults = dynamic(() => import("./views/google-results"), {
+  loading: Skeleton,
+});
 const Notifications = dynamic(() => import("./views/notifications"), {
   loading: Skeleton,
 });
@@ -82,6 +86,7 @@ const navigation = [
   { id: "projects", label: "Projetos", icon: FolderKanban },
   { id: "tasks", label: "Tarefas", icon: ListTodo },
   { id: "clients", label: "Clientes", icon: Users },
+  { id: "results", label: "Resultados", icon: BarChart3 },
   { id: "finance", label: "Financeiro", icon: Wallet },
   { id: "collections", label: "Cobranças", icon: CreditCard },
   { id: "meetings", label: "Reuniões", icon: CalendarClock },
@@ -111,6 +116,7 @@ function Shell({ initialView = "overview" }: { initialView?: View }) {
   const [view, setView] = useState<View>(
     [
       "collections",
+      "results",
       "ideas",
       "methodologies",
       "meetings",
@@ -406,6 +412,7 @@ function Shell({ initialView = "overview" }: { initialView?: View }) {
           ) : (
             <>
               {view === "collections" && <Collections {...viewProps} />}
+              {view === "results" && <GoogleResults {...viewProps} />}
               {view === "meetings" && <Meetings {...viewProps} />}
               {view === "notifications" && <Notifications {...viewProps} />}
               {view === "ideas" && <Ideas {...viewProps} />}
