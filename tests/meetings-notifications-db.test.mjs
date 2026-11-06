@@ -5,6 +5,7 @@ import { PGlite } from "pglite-pg17";
 import { storageFixture } from "./helpers/storage-fixture.mjs";
 import { newBase } from "../src/lib/domain/model.ts";
 import { databaseCommand } from "../src/lib/domain/transport.ts";
+import { todayDate } from "../src/lib/domain/dates.ts";
 test("PostgreSQL 17: reuniões, lembretes, vendas verificadas e entregas têm isolamento, deduplicação e lease", async () => {
   const db = new PGlite(),
     owner = "11111111-1111-4111-8111-111111111111",
@@ -217,7 +218,7 @@ test("PostgreSQL 17: reuniões, lembretes, vendas verificadas e entregas têm is
       refundedCents: 0,
       currency: "BRL",
       status: "approved",
-      paidOn: new Date().toISOString().slice(0, 10),
+      paidOn: todayDate(),
       providerUpdatedAt: new Date().toISOString(),
       refunds: [],
       refundsComplete: true,

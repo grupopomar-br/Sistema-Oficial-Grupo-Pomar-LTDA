@@ -147,12 +147,17 @@ test("nova consulta mantém compatibilidade apenas para RPC ausente e não ocult
   const old = { example: true };
   const result = await fetchWorkspaceSnapshot(async (name) => {
     calls.push(name);
-    return ["pomar_workspace_cards", "pomar_workspace_results"].includes(name)
+    return [
+      "pomar_workspace_client_terms",
+      "pomar_workspace_cards",
+      "pomar_workspace_results",
+    ].includes(name)
       ? { data: null, error: { code: "PGRST202" } }
       : { data: old, error: null };
   });
   assert.equal(result.data, old);
   assert.deepEqual(calls, [
+    "pomar_workspace_client_terms",
     "pomar_workspace_cards",
     "pomar_workspace_results",
     "pomar_workspace_scheduled",

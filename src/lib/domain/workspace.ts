@@ -494,7 +494,10 @@ export function applyCommand(
     }
 
     case "saveClient":
-      save(state.clients, command.value);
+      save(state.clients, {
+        ...state.clients.find((client) => client.id === command.value.id),
+        ...command.value,
+      });
       log(
         "client",
         command.value.id,

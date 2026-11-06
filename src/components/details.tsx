@@ -22,8 +22,10 @@ import {
   SearchInput,
 } from "./ui";
 import { ProjectCard } from "./project-card";
+import { ClientTermSummary } from "./client-term";
 import type { ModalState } from "./types";
 import { labels } from "@/lib/domain/model";
+import { lastClientTermDate } from "@/lib/domain/client-term";
 import {
   money,
   fullDate,
@@ -45,7 +47,7 @@ export function EntityDetails({
   today: string;
   hiddenValues: boolean;
 }) {
-  const { state, execute, saving } = useWorkspace();
+  const { state, mode, execute, saving } = useWorkspace();
   if (modal.kind === "clientDetail") {
     const client = state.clients.find((item) => item.id === modal.id);
     if (!client) return null;
@@ -68,6 +70,40 @@ export function EntityDetails({
             Editar cliente
           </Button>
         </div>
+        {(mode === "local" || state.clientTermsReady) && (
+          <section
+            className="client-term-panel"
+            aria-label="Prazo do relacionamento"
+          >
+            <h3>Prazo do relacionamento</h3>
+            <ClientTermSummary client={client} today={today} />
+            <div className="client-term-actions">
+              <Button
+                onClick={() =>
+                  open({ kind: "client", id: client.id, termAction: "edit" })
+                }
+              >
+                <Calendar size={15} />
+                {client.closedOn ? "Editar datas" : "Definir datas"}
+              </Button>
+              {client.endsOn && client.endsOn < lastClientTermDate && (
+                <Button
+                  variant="primary"
+                  onClick={() =>
+                    open({
+                      kind: "client",
+                      id: client.id,
+                      termAction: "extend",
+                    })
+                  }
+                >
+                  <Plus size={15} />
+                  Acrescentar dias
+                </Button>
+              )}
+            </div>
+          </section>
+        )}
         <div className="contact-details">
           {client.contactName && (
             <p>

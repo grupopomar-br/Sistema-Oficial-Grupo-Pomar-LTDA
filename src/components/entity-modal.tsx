@@ -4,6 +4,7 @@ import { useState, useEffect, type FormEvent, type ReactNode } from "react";
 import { Check, Loader2, ArrowRight } from "lucide-react";
 import { useWorkspace } from "./workspace-provider";
 import { Button, Field, Modal, Badge } from "./ui";
+import { ClientTermExtension, ClientTermFields } from "./client-term";
 import type { ModalState } from "./types";
 import {
   newBase,
@@ -16,6 +17,7 @@ import {
   type Command,
 } from "@/lib/domain/model";
 import { todayDate, money, fullDate } from "@/lib/domain/dates";
+import { extendClientTerm } from "@/lib/domain/client-term";
 import { parseBRL } from "@/lib/domain/finance";
 import { installmentRemaining } from "@/lib/domain/workspace";
 
@@ -34,7 +36,7 @@ export default function EntityModal({
   >;
   onClose: () => void;
 }) {
-  const { state, execute, saving, operationError, clearOperationError } =
+  const { state, mode, execute, saving, operationError, clearOperationError } =
     useWorkspace();
   useEffect(() => {
     clearOperationError();
@@ -116,6 +118,7 @@ export default function EntityModal({
   );
 
   if (modal.kind === "client") {
+    const termsReady = mode === "local" || initialState.clientTermsReady;
     const initial: Client = initialState.clients.find(
       (item) => item.id === modal.id,
     ) ?? {
@@ -131,6 +134,51 @@ export default function EntityModal({
       notes: "",
       status: "active",
     };
+    const termDates = (form: FormData) => ({
+      closedOn: nullable(form, "closedOn"),
+      endsOn: nullable(form, "endsOn"),
+    });
+    if (modal.termAction && termsReady && initial.id === modal.id) {
+      const endsOn = initial.endsOn;
+      if (modal.termAction === "extend" && endsOn) {
+        return content(
+          "Acrescentar dias",
+          <form
+            onSubmit={submit((form) => {
+              const next = extendClientTerm(
+                endsOn,
+                Number(value(form, "extraDays")),
+              );
+              if (!next)
+                throw new Error(
+                  "Informe uma quantidade válida de dias inteiros.",
+                );
+              return {
+                type: "saveClient",
+                value: { ...initial, endsOn: next },
+              };
+            })}
+          >
+            <ClientTermExtension endsOn={endsOn} />
+            {footer("Salvar prorrogação")}
+          </form>,
+          initial.name,
+        );
+      }
+      return content(
+        "Editar prazo",
+        <form
+          onSubmit={submit((form) => ({
+            type: "saveClient",
+            value: { ...initial, ...termDates(form) },
+          }))}
+        >
+          <ClientTermFields client={initial} autoFocus />
+          {footer("Salvar datas")}
+        </form>,
+        initial.name,
+      );
+    }
     return content(
       modal.id ? "Editar cliente" : "Novo cliente",
       <form
@@ -148,6 +196,7 @@ export default function EntityModal({
             phone: value(form, "phone"),
             website: value(form, "website"),
             notes: value(form, "notes"),
+            ...(termsReady ? termDates(form) : {}),
           },
         }))}
       >
@@ -222,6 +271,12 @@ export default function EntityModal({
             />
           </Field>
         </div>
+        {termsReady && (
+          <fieldset className="client-term-form">
+            <legend>Prazo do relacionamento</legend>
+            <ClientTermFields client={initial} />
+          </fieldset>
+        )}
         {footer()}
       </form>,
       "Um cadastro único para conectar relacionamento, projetos e contratos.",

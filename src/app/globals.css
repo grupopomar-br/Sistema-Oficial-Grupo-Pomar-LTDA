@@ -1463,6 +1463,93 @@ td .text-button {
   align-items: center;
   gap: 7px;
 }
+.client-term-panel {
+  padding: 16px;
+  margin: 16px 0;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #f6f9f5;
+}
+.client-term-panel > h3,
+.client-term-form > legend {
+  color: var(--green);
+  font-size: 14px;
+  font-weight: 650;
+}
+.client-term-summary,
+.client-term-caption {
+  margin: 10px 0;
+  font-size: 12px;
+  color: #52665c;
+}
+.client-term-dates {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.client-term-dates time,
+.client-term-dates strong {
+  display: block;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+.client-term-summary progress {
+  display: block;
+  width: 100%;
+  height: 8px;
+  margin: 12px 0 5px;
+  border: 0;
+  border-radius: 8px;
+  accent-color: var(--green-2);
+}
+.client-term-count,
+.client-term-actions {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+}
+.client-term-count strong {
+  color: var(--green);
+}
+.client-term-actions {
+  margin-top: 12px;
+}
+.client-term-actions > .button {
+  flex: 1 1 126px;
+  min-height: 44px;
+}
+.client-term-form {
+  min-width: 0;
+  padding: 12px;
+  margin: 18px 0 0;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.client-term-form > legend {
+  padding: 0 6px;
+}
+.client-term-fields.form-grid {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+}
+.client-term-fields .field input {
+  min-width: 0;
+  min-height: 44px;
+  font-size: 16px;
+}
+.client-term-preview {
+  margin-top: 12px;
+  color: var(--green);
+  font-size: 13px;
+}
+@media (min-width: 561px) {
+  .client-term-fields.form-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
 .task-row {
   display: flex;
   align-items: flex-start;
