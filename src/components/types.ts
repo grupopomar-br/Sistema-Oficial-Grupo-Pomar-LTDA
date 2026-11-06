@@ -18,7 +18,7 @@ export type View =
   | "settings";
 export type ModalState =
   | { kind: "idea"; id?: string }
-  | { kind: "client"; id?: string }
+  | { kind: "client"; id?: string; termAction?: "edit" | "extend" }
   | { kind: "project"; id?: string }
   | { kind: "task"; id?: string; projectId?: string }
   | { kind: "contract"; projectId?: string }

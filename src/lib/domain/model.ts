@@ -32,27 +32,41 @@ const base = {
 };
 export const prioritySchema = z.enum(["P0", "P1", "P2", "P3"]);
 
-export const clientSchema = z.strictObject({
-  ...base,
-  name: title,
-  kind: z.enum(["business", "person"]),
-  city: text(100),
-  segment: text(100),
-  contactName: text(100),
-  email: z.union([z.email(), z.literal("")]),
-  phone: text(40),
-  website: z.union([
-    z
-      .url()
-      .refine(
-        (value) => /^https?:\/\//i.test(value),
-        "Use um endereço http ou https.",
-      ),
-    z.literal(""),
-  ]),
-  notes: text(5000),
-  status: z.enum(["active", "prospect", "archived"]),
-});
+export const clientSchema = z
+  .strictObject({
+    ...base,
+    name: title,
+    kind: z.enum(["business", "person"]),
+    city: text(100),
+    segment: text(100),
+    contactName: text(100),
+    email: z.union([z.email(), z.literal("")]),
+    phone: text(40),
+    website: z.union([
+      z
+        .url()
+        .refine(
+          (value) => /^https?:\/\//i.test(value),
+          "Use um endereço http ou https.",
+        ),
+      z.literal(""),
+    ]),
+    notes: text(5000),
+    status: z.enum(["active", "prospect", "archived"]),
+    closedOn: date.nullable().optional(),
+    endsOn: date.nullable().optional(),
+  })
+  .refine(({ closedOn, endsOn }) => !endsOn || !!closedOn, {
+    message: "Informe a data de fechamento para definir o encerramento.",
+    path: ["closedOn"],
+  })
+  .refine(
+    ({ closedOn, endsOn }) => !closedOn || !endsOn || endsOn >= closedOn,
+    {
+      message: "O encerramento deve ser na data de fechamento ou depois.",
+      path: ["endsOn"],
+    },
+  );
 export const areaSchema = z.strictObject({
   ...base,
   name: title,
@@ -193,6 +207,7 @@ export const workspaceSchema = z.strictObject({
   personalizationReady: z.boolean().default(false),
   meetingsReady: z.boolean().default(false),
   googleResultsReady: z.boolean().default(false),
+  clientTermsReady: z.boolean().default(false),
   googleResults: z.array(googleResultSchema).max(10000).default([]),
   meetings: z.array(meetingSchema).max(10000).default([]),
   settings: settingsSchema,
@@ -314,6 +329,7 @@ export function emptyWorkspace(now = new Date().toISOString()): Workspace {
     personalizationReady: true,
     meetingsReady: true,
     googleResultsReady: true,
+    clientTermsReady: true,
     googleResults: [],
     meetings: [],
     profile: { avatarPath: "", version: 0 },

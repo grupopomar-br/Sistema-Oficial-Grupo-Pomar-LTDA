@@ -492,7 +492,16 @@ function Shell({ initialView = "overview" }: { initialView?: View }) {
           hiddenValues={hiddenValues}
         />
       ) : modal && modal.kind !== "import" ? (
-        <EntityModal modal={modal} onClose={() => setModal(null)} />
+        <EntityModal
+          modal={modal}
+          onClose={() =>
+            setModal(
+              modal.kind === "client" && modal.termAction && modal.id
+                ? { kind: "clientDetail", id: modal.id }
+                : null,
+            )
+          }
+        />
       ) : null}
       <nav
         className="mobile-bottom-navigation"

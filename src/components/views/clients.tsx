@@ -3,11 +3,12 @@ import { useMemo, useState } from "react";
 import { Plus, Users, ArrowUpRight, Building2 } from "lucide-react";
 import { useWorkspace } from "../workspace-provider";
 import { Badge, Button, EmptyState, Pagination, SearchInput } from "../ui";
+import { ClientTermSummary } from "../client-term";
 import type { ViewProps } from "../types";
 import { labels } from "@/lib/domain/model";
 
-export default function Clients({ open }: ViewProps) {
-  const { state } = useWorkspace();
+export default function Clients({ open, today }: ViewProps) {
+  const { state, mode } = useWorkspace();
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("all");
   const [page, setPage] = useState(1);
@@ -103,6 +104,9 @@ export default function Clients({ open }: ViewProps) {
                 <Users size={14} />
                 {client.contactName || "Contato a definir"}
               </div>
+              {(mode === "local" || state.clientTermsReady) && (
+                <ClientTermSummary client={client} today={today} />
+              )}
               <div className="client-card-footer">
                 <span>
                   <Building2 size={14} />

@@ -3,7 +3,7 @@ import { readFile, readdir } from "node:fs/promises";
 import { storageFixture } from "./storage-fixture.mjs";
 import { databaseCommand } from "../../src/lib/domain/transport.ts";
 
-export async function pomarFixture() {
+export async function pomarFixture({ skipMigrations = [] } = {}) {
   const db = new PGlite();
   const owner = "11111111-1111-4111-8111-111111111111",
     other = "22222222-2222-4222-8222-222222222222",
@@ -18,7 +18,7 @@ export async function pomarFixture() {
     await storageFixture(db);
     const migrations = new URL("../../supabase/migrations/", import.meta.url);
     for (const file of (await readdir(migrations))
-      .filter((f) => f.endsWith(".sql"))
+      .filter((f) => f.endsWith(".sql") && !skipMigrations.includes(f))
       .sort())
       await db.exec(await readFile(new URL(file, migrations), "utf8"));
     await db.exec(
