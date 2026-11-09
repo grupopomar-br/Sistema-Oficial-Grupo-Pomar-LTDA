@@ -1,69 +1,153 @@
 .page {
-  width: min(100% - 32px, 660px);
+  min-height: 100dvh;
+  padding: 0 clamp(16px, 5vw, 28px) 36px;
+  background: #f7f8f4;
+  color: #183b30;
+  --media-line: #e3e8df;
+  --media-muted: #50675d;
+}
+.wrap {
+  max-width: 1080px;
   margin: 0 auto;
-  padding: 26px 0 42px;
 }
 .header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 18px;
-  color: var(--green);
+  min-height: 78px;
+  border-bottom: 1px solid var(--media-line);
 }
-.header img {
-  width: 128px;
-  height: auto;
+.header .wordmark {
+  width: 155px;
+  height: 40px;
 }
-.header > span {
-  font-size: 11px;
-  font-weight: 650;
-  letter-spacing: 0.13em;
+.privateLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--media-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+.layout {
+  display: grid;
+  gap: 24px;
+  padding-top: 28px;
+}
+.eyebrow {
+  margin: 0 0 12px;
+  color: #637755;
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: 0.19em;
+}
+.hero h1 {
+  margin: 0;
+  font-size: clamp(34px, 5vw, 44px);
+  font-weight: 560;
+  line-height: 1.14;
+  letter-spacing: -0.045em;
+}
+.hero h1 span {
+  color: #345f35;
+  font-style: italic;
+  font-weight: 520;
+  background: linear-gradient(110deg, #71872c 4%, #123e2e 92%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.description {
+  max-width: 36ch;
+  margin: 14px 0 0;
+  color: var(--media-muted);
+  font-size: 15px;
+  line-height: 1.65;
 }
 .card {
+  min-width: 0;
   padding: clamp(18px, 4vw, 30px);
-  border: 1px solid var(--line);
+  border: 1px solid var(--media-line);
   border-radius: 20px;
   background: var(--panel);
+  box-shadow: 0 5px 16px #1d372509;
 }
-.intro {
+.cardHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--media-line);
+}
+.cardIcon {
   display: grid;
-  gap: 8px;
-  padding-bottom: 14px;
-  border-bottom: 1px solid var(--line);
-  color: var(--green);
+  flex-shrink: 0;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 11px;
+  background: #eff3e7;
+  color: #42674e;
 }
-.intro h1 {
+.cardHeader h2 {
   margin: 0;
-  font-size: clamp(25px, 6vw, 36px);
-  line-height: 1.12;
-  letter-spacing: -0.04em;
+  color: var(--green);
+  font-size: 20px;
+  font-weight: 650;
+  line-height: 1.2;
+  letter-spacing: -0.025em;
 }
-.intro p,
+.cardHeader p {
+  margin: 5px 0 0;
+  color: var(--media-muted);
+  font-size: 13px;
+}
 .note {
   color: #50675d;
-}
-.note {
   margin: 12px 0;
   font-size: 13px;
 }
+.status {
+  margin: 16px 0 0;
+  padding: 12px 14px;
+  border-radius: 9px;
+  background: #f2f5ee;
+  color: var(--media-muted);
+}
 .chooser {
+  position: relative;
   display: grid;
-  gap: 9px;
-  padding: 13px;
-  border: 1px dashed #89a794;
-  border-radius: 12px;
-  background: var(--soft);
+  gap: 3px;
+  align-content: center;
+  min-height: 92px;
+  margin-top: 16px;
+  padding: 14px;
+  border: 1px dashed #769382;
+  border-radius: 11px;
+  background: #f4f7ee;
   color: var(--green);
-  font-weight: 640;
+  text-align: center;
+  font-size: 15px;
+  font-weight: 650;
+}
+.chooser small {
+  color: var(--media-muted);
+  font-size: 12px;
+  font-weight: 400;
+}
+.chooser:focus-within {
+  outline: 2px solid #51734b;
+  outline-offset: 3px;
 }
 .chooser input {
+  position: absolute;
+  inset: 0;
   width: 100%;
-  min-width: 0;
-  font-size: 16px;
-}
-.chooser input::file-selector-button {
-  min-height: 44px;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
 }
 .files {
   display: grid;
@@ -99,7 +183,142 @@
   width: 100%;
   accent-color: var(--green-2);
 }
-.send {
+.card .send {
   width: 100%;
+  min-height: 49px;
+  background: linear-gradient(110deg, #e4fb84, #cbe956);
+  color: #173e30;
+  border-color: #bfda62;
+  font-size: 14px;
+}
+.card .send:hover:not(:disabled) {
+  background: linear-gradient(110deg, #dcf76f, #b9dc40);
+}
+.received {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 14px 0 0;
+  color: #37684f;
+  font-size: 13px;
+}
+.received svg {
+  flex-shrink: 0;
+}
+.welcome {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 24px;
+  border: 0;
+  background: radial-gradient(
+    ellipse at 50% 35%,
+    #2a503d,
+    #143328 57%,
+    #0d221b
+  );
+  color: #f7f8f4;
+  overflow: auto;
+}
+.welcome[open] {
+  display: grid;
+  place-items: center;
+}
+.welcome::backdrop {
+  background: #0d221b;
+}
+.welcomeContent {
+  display: grid;
+  justify-items: center;
+  text-align: center;
+  animation: welcomeIn 500ms ease-out both;
+}
+.welcome .welcomeLogo {
+  width: clamp(176px, 52vw, 210px);
+  height: 48px;
+}
+.welcome h2 {
+  margin: 24px 0 20px;
+  font-size: clamp(32px, 7vw, 52px);
+  font-weight: 560;
+  line-height: 1.12;
+  letter-spacing: -0.045em;
+}
+.welcome h2 em {
+  color: #ddf476;
+}
+.welcomeProgress {
+  width: min(160px, 60vw);
+  height: 2px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: #ffffff2e;
+}
+.welcomeProgress::after {
+  display: block;
+  height: 100%;
+  background: #ddf476;
+  content: "";
+  transform-origin: left;
+  animation: welcomeProgress 5s linear both;
+}
+.skipWelcome {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   min-height: 44px;
+  margin-top: 16px;
+  padding: 8px 13px;
+  border: 1px solid #ffffff59;
+  border-radius: 8px;
+  background: transparent;
+  color: #f7f8f4;
+  font-size: 13px;
+}
+.skipWelcome:hover {
+  background: #ffffff1a;
+}
+.skipWelcome:focus-visible {
+  outline: 2px solid #ddf476;
+  outline-offset: 3px;
+}
+@keyframes welcomeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes welcomeProgress {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+@media (min-width: 760px) {
+  .header {
+    min-height: 98px;
+  }
+  .header .wordmark {
+    width: 210px;
+    height: 49px;
+  }
+  .layout {
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+    align-items: start;
+    gap: clamp(40px, 7vw, 86px);
+    padding-top: 58px;
+  }
+  .hero {
+    padding-top: 12px;
+  }
 }

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import MediaIntake from "@/components/media-intake";
+import { mediaR2Origin } from "@/lib/config/media";
 
 export const metadata: Metadata = {
   title: "Envio VIP de mídias | Grupo Pomar",
@@ -8,5 +9,5 @@ export const metadata: Metadata = {
 };
 
 export default function Page() {
-  return <MediaIntake />;
+  return <MediaIntake storageOrigin={mediaR2Origin(process.env)} />;
 }

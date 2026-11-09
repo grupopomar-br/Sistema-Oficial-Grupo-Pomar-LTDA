@@ -94,7 +94,11 @@ try {
   assert.equal(vip.status, 200);
   assert.equal(vip.headers.get("referrer-policy"), "no-referrer");
   assert.ok(vip.headers.get("cache-control")?.includes("no-store"));
-  assert.ok((await vip.text()).includes("Envie suas fotos e vídeos."));
+  const vipHtml = await vip.text();
+  assert.match(
+    vipHtml,
+    /id="media-title"[^>]*>Envie suas<br\s*\/?><span>fotos e vídeos\.<\/span>/,
+  );
   const vipDownload = await fetch(origin + "/api/media/download");
   assert.equal(vipDownload.status, 503);
   const worker = await fetch(origin + "/sw.js");
