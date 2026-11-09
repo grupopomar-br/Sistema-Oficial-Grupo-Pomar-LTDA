@@ -19,6 +19,7 @@ import {
 import { todayDate, money, fullDate } from "@/lib/domain/dates";
 import { extendClientTerm } from "@/lib/domain/client-term";
 import { parseBRL } from "@/lib/domain/finance";
+import { expenseGroups, expensePurposes } from "@/lib/domain/cash-movement";
 import { installmentRemaining } from "@/lib/domain/workspace";
 
 const value = (form: FormData, key: string) =>
@@ -662,6 +663,7 @@ export default function EntityModal({
     );
   }
   if (modal.kind === "expense") {
+    const purposesReady = mode === "local" || initialState.expensePurposesReady;
     const initial: Expense = initialState.expenses.find(
       (item) => item.id === modal.id,
     ) ?? {
@@ -684,6 +686,9 @@ export default function EntityModal({
             ...initial,
             title: value(form, "title"),
             category: value(form, "category") as Expense["category"],
+            ...(purposesReady
+              ? { purpose: nullable(form, "purpose") as Expense["purpose"] }
+              : {}),
             projectId: nullable(form, "projectId"),
             amountCents: parseBRL(value(form, "amount")),
             dueOn: nullable(form, "dueOn"),
@@ -723,6 +728,18 @@ export default function EntityModal({
               ))}
             </select>
           </Field>
+          {purposesReady && (
+            <Field label="Classificação no caixa" wide>
+              <select name="purpose" defaultValue={initial.purpose ?? ""}>
+                <option value="">Seguir a categoria da despesa</option>
+                {expensePurposes.map((purpose) => (
+                  <option key={purpose} value={purpose}>
+                    {expenseGroups[purpose]}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          )}
           <Field label="Projeto" wide>
             {selectProjects(initial.projectId)}
           </Field>

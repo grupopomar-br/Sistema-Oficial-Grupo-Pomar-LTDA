@@ -12,6 +12,7 @@ import { googleResultSchema, googleResultCommand } from "./google-results.ts";
 import { newId } from "./id.ts";
 import { z } from "zod";
 import { isDateOnly } from "./dates.ts";
+import { expensePurposes } from "./cash-movement.ts";
 import {
   methodologySchema,
   profileSchema,
@@ -150,6 +151,7 @@ export const expenseSchema = z
     ...base,
     title,
     category: z.enum(["infrastructure", "service", "withdrawal", "other"]),
+    purpose: z.enum(expensePurposes).nullable().optional(),
     projectId: id.nullable(),
     amountCents: cents.positive(),
     dueOn: date.nullable(),
@@ -209,6 +211,7 @@ export const workspaceSchema = z.strictObject({
   googleResultsReady: z.boolean().default(false),
   clientTermsReady: z.boolean().default(false),
   collectionQueueReady: z.boolean().default(false),
+  expensePurposesReady: z.boolean().default(false),
   googleResults: z.array(googleResultSchema).max(10000).default([]),
   meetings: z.array(meetingSchema).max(10000).default([]),
   settings: settingsSchema,
@@ -332,6 +335,7 @@ export function emptyWorkspace(now = new Date().toISOString()): Workspace {
     googleResultsReady: true,
     clientTermsReady: true,
     collectionQueueReady: true,
+    expensePurposesReady: true,
     googleResults: [],
     meetings: [],
     profile: { avatarPath: "", version: 0 },

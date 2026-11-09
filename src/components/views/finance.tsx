@@ -27,9 +27,11 @@ import {
 import type { ViewProps } from "../types";
 import { getFinanceSummary } from "@/lib/domain/selectors";
 import { installmentRemaining } from "@/lib/domain/workspace";
-import { money, fullDate, shiftMonth, monthLabel } from "@/lib/domain/dates";
+import { money, fullDate } from "@/lib/domain/dates";
 import { financialCsv } from "@/lib/domain/backup";
 import { labels } from "@/lib/domain/model";
+import { expenseGroup, expenseGroups } from "@/lib/domain/cash-movement";
+import CashDashboard from "./cash-dashboard";
 
 export function downloadFile(name: string, content: string, type: string) {
   const url = URL.createObjectURL(new Blob([content], { type }));
@@ -52,6 +54,7 @@ export default function Finance({
   const [tab, setTab] = useState("overview");
   const [page, setPage] = useState(1);
   const [scope, setScope] = useState("month");
+  const [spendingFilter, setSpendingFilter] = useState("all");
   const summary = useMemo(
     () => getFinanceSummary(state, month),
     [state, month],
@@ -80,7 +83,8 @@ export default function Finance({
   const expenses = [...state.expenses]
     .filter(
       (item) =>
-        scope === "all" || (item.paidOn ?? item.dueOn)?.startsWith(month),
+        (scope === "all" || (item.paidOn ?? item.dueOn)?.startsWith(month)) &&
+        (spendingFilter === "all" || expenseGroup(item) === spendingFilter),
     )
     .sort((a, b) => (a.dueOn ?? "9999").localeCompare(b.dueOn ?? "9999"));
   const contractName = (id: string) =>
@@ -105,14 +109,6 @@ export default function Finance({
     page,
     Math.max(1, Math.ceil(collection.length / 15)),
   );
-  const months = Array.from({ length: 6 }, (_, index) =>
-    shiftMonth(month, index - 5),
-  );
-  const chart = months.map((value) => ({
-    month: value,
-    amount: getFinanceSummary(state, value).received,
-  }));
-  const chartMax = Math.max(1, ...chart.map((item) => item.amount));
   return (
     <div className="view-stack">
       <div className="view-intro">
@@ -201,7 +197,7 @@ export default function Finance({
           </button>
         ))}
       </div>
-      {summary.refunded > 0 && (
+      {summary.refunded > 0 && tab !== "overview" && (
         <div className="inline-note">
           Devoluções confirmadas no mês:{" "}
           <strong>{format(summary.refunded)}</strong>. Elas reduzem o saldo de
@@ -210,90 +206,17 @@ export default function Finance({
       )}
       {tab === "overview" && (
         <>
-          <div className="finance-overview">
-            <section className="panel">
-              <div className="panel-heading">
-                <div>
-                  <span className="eyebrow">CAIXA REALIZADO</span>
-                  <h2>Recebimentos dos últimos meses</h2>
-                </div>
-                <Badge tone="green">6 meses</Badge>
-              </div>
-              {hiddenValues ? (
-                <div className="chart-hidden">Valores ocultos</div>
-              ) : (
-                <div
-                  className="cash-chart"
-                  role="img"
-                  aria-label="Recebimentos mensais confirmados"
-                >
-                  <div className="chart-bars">
-                    {chart.map((item) => (
-                      <div className="chart-column" key={item.month}>
-                        <span>{money(item.amount)}</span>
-                        <div className="chart-bar-space">
-                          <div
-                            className={
-                              item.month === month
-                                ? "chart-bar current"
-                                : "chart-bar"
-                            }
-                            style={{
-                              height: item.amount
-                                ? `${Math.max(3, (item.amount / chartMax) * 100)}%`
-                                : "2px",
-                            }}
-                            title={`${monthLabel(item.month)}: ${money(item.amount)}`}
-                          />
-                        </div>
-                        <small>
-                          {new Intl.DateTimeFormat("pt-BR", {
-                            month: "short",
-                          }).format(new Date(`${item.month}-15T12:00:00Z`))}
-                        </small>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </section>
-            <section className="panel cash-summary">
-              <span className="eyebrow">MOVIMENTO DO MÊS</span>
-              <div>
-                <span>Entradas confirmadas</span>
-                <strong className="text-green">
-                  {format(summary.received)}
-                </strong>
-              </div>
-              <div>
-                <span>Despesas pagas</span>
-                <strong>{format(summary.paidExpenses)}</strong>
-              </div>
-              {summary.refunded > 0 && (
-                <div>
-                  <span>Devoluções confirmadas</span>
-                  <strong>{format(summary.refunded)}</strong>
-                </div>
-              )}
-              <div className="cash-total">
-                <span>Saldo gerencial do mês</span>
-                <strong>{format(summary.cashBalance)}</strong>
-              </div>
-              <p>
-                Recebimentos brutos menos despesas e devoluções registradas. Não
-                é saldo bancário nem disponibilidade de saque do provedor.
-              </p>
-              <Button
-                onClick={() => {
-                  setTab("expenses");
-                  setPage(1);
-                }}
-              >
-                Ver despesas
-                <ArrowUpRight size={15} />
-              </Button>
-            </section>
-          </div>
+          <CashDashboard
+            state={state}
+            month={month}
+            unpaid={summary.unpaidExpenses}
+            hiddenValues={hiddenValues}
+            onExpenses={() => {
+              setTab("expenses");
+              setPage(1);
+            }}
+            onAddExpense={() => open({ kind: "expense" })}
+          />
           {undated.length > 0 && (
             <section className="panel reconciliation">
               <div className="panel-heading">
@@ -499,6 +422,23 @@ export default function Finance({
                 <option value="all">Todos os meses</option>
               </select>
               {tab === "expenses" && (
+                <select
+                  aria-label="Grupo de despesa"
+                  value={spendingFilter}
+                  onChange={(event) => {
+                    setSpendingFilter(event.target.value);
+                    setPage(1);
+                  }}
+                >
+                  <option value="all">Todos os grupos</option>
+                  {Object.entries(expenseGroups).map(([group, label]) => (
+                    <option key={group} value={group}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              )}
+              {tab === "expenses" && (
                 <Button
                   variant="primary"
                   onClick={() => open({ kind: "expense" })}
@@ -638,7 +578,11 @@ export default function Finance({
                         <tr key={item.id}>
                           <td>
                             <strong>{item.title}</strong>
-                            <small>{labels.category[item.category]}</small>
+                            <small>
+                              {item.purpose
+                                ? expenseGroups[item.purpose]
+                                : labels.category[item.category]}
+                            </small>
                           </td>
                           <td>{fullDate(item.paidOn ?? item.dueOn)}</td>
                           <td>

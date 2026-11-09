@@ -1661,108 +1661,6 @@ td .text-button {
   border-radius: 4px;
   background: #e6efda;
 }
-.finance-overview {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 300px;
-  gap: 20px;
-}
-.cash-chart,
-.chart-hidden {
-  padding: 27px 27px 20px;
-  min-height: 240px;
-}
-.chart-bars {
-  display: flex;
-  justify-content: space-between;
-  gap: 13px;
-  align-items: stretch;
-  height: 192px;
-  border-bottom: 1px solid #e8eedd;
-}
-.chart-column {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  flex-direction: column;
-  min-width: 0;
-}
-.chart-column > span {
-  font-size: 8px;
-  color: #789367;
-  margin-bottom: 9px;
-  white-space: nowrap;
-}
-.chart-bar-space {
-  flex: 1;
-  width: 100%;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  background: repeating-linear-gradient(
-    to top,
-    transparent 0,
-    transparent 42px,
-    #edf1e6 43px
-  );
-}
-.chart-bar {
-  width: 54%;
-  max-width: 38px;
-  background: #c5d7ad;
-  border-radius: 5px 5px 0 0;
-  min-height: 2px;
-}
-.chart-bar.current {
-  background: #568358;
-}
-.chart-column small {
-  font-size: 9px;
-  color: #92a37f;
-  margin: 9px 0 0;
-  text-transform: uppercase;
-  position: relative;
-  top: 15px;
-}
-.chart-hidden {
-  display: grid;
-  place-items: center;
-  color: #8a9c76;
-}
-.cash-summary {
-  padding: 23px;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-.cash-summary > div {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 10px;
-  font-size: 10px;
-  color: #809470;
-}
-.cash-summary > div strong {
-  font-size: 13px;
-  color: #486b38;
-  white-space: nowrap;
-}
-.cash-summary .cash-total {
-  border-top: 1px solid #e4ebda;
-  padding-top: 20px;
-}
-.cash-summary .cash-total strong {
-  font-size: 19px;
-}
-.cash-summary > p {
-  font-size: 10px;
-  color: #9ba98b;
-  line-height: 1.8;
-}
-.cash-summary > .button {
-  align-self: flex-start;
-  font-size: 10px;
-}
 .reconciliation {
   background: #fffdf4;
   border-color: #ede2b4;
@@ -2948,9 +2846,6 @@ td .text-button {
   .client-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-  .finance-overview {
-    grid-template-columns: minmax(0, 1fr) 260px;
-  }
   .areas-settings {
     grid-template-columns: 1fr 1fr;
   }
@@ -3000,23 +2895,6 @@ td .text-button {
   }
   .project-card {
     padding: 19px;
-  }
-  .finance-overview {
-    grid-template-columns: 1fr;
-  }
-  .cash-summary {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
-  }
-  .cash-summary > .eyebrow {
-    grid-column: 1/-1;
-  }
-  .cash-summary .cash-total {
-    grid-column: 1/-1;
-  }
-  .cash-summary > p {
-    grid-column: 1/-1;
   }
   .filter-main {
     flex-wrap: wrap;
@@ -3491,33 +3369,6 @@ td .text-button {
   }
   .page-tabs > button {
     font-size: 10px;
-  }
-  .finance-overview {
-    gap: 15px;
-  }
-  .cash-chart {
-    padding: 24px 16px 20px;
-  }
-  .chart-bars {
-    gap: 7px;
-    height: 185px;
-  }
-  .chart-column > span {
-    font-size: 7px;
-    letter-spacing: -0.3px;
-  }
-  .chart-column small {
-    font-size: 8px;
-  }
-  .cash-summary {
-    padding: 20px;
-  }
-  .cash-summary > div {
-    font-size: 9px;
-    align-items: flex-start;
-  }
-  .cash-summary .cash-total strong {
-    font-size: 17px;
   }
   .simple-list > div {
     padding: 15px 16px;

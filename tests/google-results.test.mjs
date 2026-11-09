@@ -148,6 +148,7 @@ test("nova consulta mantém compatibilidade apenas para RPC ausente e não ocult
   const result = await fetchWorkspaceSnapshot(async (name) => {
     calls.push(name);
     return [
+      "pomar_workspace_expense_purposes",
       "pomar_workspace_collection_queue",
       "pomar_workspace_client_terms",
       "pomar_workspace_cards",
@@ -158,6 +159,7 @@ test("nova consulta mantém compatibilidade apenas para RPC ausente e não ocult
   });
   assert.equal(result.data, old);
   assert.deepEqual(calls, [
+    "pomar_workspace_expense_purposes",
     "pomar_workspace_collection_queue",
     "pomar_workspace_client_terms",
     "pomar_workspace_cards",
