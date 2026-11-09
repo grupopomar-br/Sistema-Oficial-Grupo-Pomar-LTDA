@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { z } from "zod";
-import { parseEnvironment } from "@/lib/config/environment";
+import { ConfigurationError, parseEnvironment } from "@/lib/config/environment";
 import { parseMediaConfig } from "@/lib/config/media";
 import { authorizedOwner, requireOrigin } from "@/lib/server/access";
 import { boundedJson, errorResponse, json } from "@/lib/server/http";
@@ -12,10 +12,12 @@ const schema = z.strictObject({
 });
 
 export async function POST(request: Request) {
+  let ownerAuthorized = false;
   try {
     const app = parseEnvironment(process.env);
     requireOrigin(request, app.appUrl);
     const { supabase } = await authorizedOwner(false);
+    ownerAuthorized = true;
     const input = schema.parse(await boundedJson(request, 8192));
     const config = parseMediaConfig(process.env);
     if (!config.enabled) return json({ available: false });
@@ -39,6 +41,11 @@ export async function POST(request: Request) {
     link.hash = token;
     return json({ available: true, project, link: link.toString() });
   } catch (error) {
+    if (ownerAuthorized && error instanceof ConfigurationError)
+      return json(
+        { error: `Revise na Vercel ${error.fields.join(", ")}.` },
+        503,
+      );
     return errorResponse(error);
   }
 }
