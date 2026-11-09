@@ -37,6 +37,12 @@ const nextConfig: NextConfig = {
         source: "/api/checkout/:path*",
         headers: [{ key: "Referrer-Policy", value: "no-referrer" }],
       },
+      ...["/envio-vip", "/api/envio-vip", "/api/media/:path*"].map(
+        (source) => ({
+          source,
+          headers: [{ key: "Referrer-Policy", value: "no-referrer" }],
+        }),
+      ),
     ];
   },
 };

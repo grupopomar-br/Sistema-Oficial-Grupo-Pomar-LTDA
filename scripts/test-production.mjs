@@ -8,6 +8,7 @@ const env = {
   NODE_ENV: "production",
   POMAR_ENVIRONMENT: "production",
   POMAR_BILLING_ENABLED: "false",
+  POMAR_MEDIA_ENABLED: "false",
   NEXT_PUBLIC_SUPABASE_URL: "",
   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "",
   POMAR_OWNER_USER_ID: "",
@@ -71,6 +72,8 @@ try {
     "/api/notifications/test",
     "/api/notifications/dispatch",
     "/api/webhooks/mercadopago",
+    "/api/envio-vip",
+    "/api/media/project",
   ]) {
     const response = await fetch(origin + path, {
       method: "POST",
@@ -87,6 +90,13 @@ try {
   }
   const notices = await fetch(origin + "/api/notifications");
   assert.equal(notices.status, 503);
+  const vip = await fetch(origin + "/envio-vip");
+  assert.equal(vip.status, 200);
+  assert.equal(vip.headers.get("referrer-policy"), "no-referrer");
+  assert.ok(vip.headers.get("cache-control")?.includes("no-store"));
+  assert.ok((await vip.text()).includes("Envie suas fotos e vídeos."));
+  const vipDownload = await fetch(origin + "/api/media/download");
+  assert.equal(vipDownload.status, 503);
   const worker = await fetch(origin + "/sw.js");
   assert.equal(worker.status, 200);
   assert.ok(worker.headers.get("cache-control").includes("no-store"));

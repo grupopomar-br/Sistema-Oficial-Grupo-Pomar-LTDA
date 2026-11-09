@@ -36,6 +36,7 @@ export default function EntityModal({
     {
       kind:
         | "projectDetail"
+        | "projectMedia"
         | "clientDetail"
         | "search"
         | "import"

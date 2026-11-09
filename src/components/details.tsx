@@ -10,6 +10,7 @@ import {
   Phone,
   Globe,
   FileText,
+  ImagePlus,
   Search,
 } from "lucide-react";
 import { useWorkspace } from "./workspace-provider";
@@ -221,10 +222,19 @@ export function EntityDetails({
           </Badge>
           <PriorityBadge value={project.priority} />
         </div>
-        <Button onClick={() => open({ kind: "project", id: project.id })}>
-          <Edit3 size={15} />
-          Editar
-        </Button>
+        <div className="button-group">
+          {mode === "cloud" && (
+            <Button
+              onClick={() => open({ kind: "projectMedia", id: project.id })}
+            >
+              <ImagePlus size={15} /> Mídias VIP
+            </Button>
+          )}
+          <Button onClick={() => open({ kind: "project", id: project.id })}>
+            <Edit3 size={15} />
+            Editar
+          </Button>
+        </div>
       </div>
       <div className="detail-metrics">
         <div>

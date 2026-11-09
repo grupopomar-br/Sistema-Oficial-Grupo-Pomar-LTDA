@@ -1,6 +1,6 @@
 # Central Operacional Pomar
 
-- Produto interno de proprietário único. Não incluir cadastro público ou acesso de clientes à Central. Exceção autorizada: checkout público por link privado, limitado à própria cobrança, sem acesso ao workspace.
+- Produto interno de proprietário único. Não incluir cadastro público ou acesso de clientes à Central. Exceções autorizadas: checkout por link privado limitado à própria cobrança e Área VIP por convite limitado ao envio de mídias para um projeto. Nenhum convite dá acesso ao workspace ou aos arquivos já enviados.
 - Repositório pode estar público: nunca incluir dados empresariais reais, credenciais, dumps, documentos internos ou backups de operação.
 - Sem dependência de fornecedor de hospedagem. Supabase é configurado manualmente conforme `docs/CONFIGURACAO.md`.
 - Modo local é de desenvolvimento e persiste no navegador; nunca habilitá-lo em produção ou usá-lo como fallback silencioso de falha na nuvem.

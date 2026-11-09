@@ -2,6 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { parseEnvironment } from "@/lib/config/environment";
 import { isPublicPaymentRoute } from "@/lib/config/public-payment-routes";
+import { mediaR2Origin } from "@/lib/config/media";
 export async function proxy(request: NextRequest) {
   const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
   const development = process.env.NODE_ENV === "development";
@@ -10,6 +11,10 @@ export async function proxy(request: NextRequest) {
     config = parseEnvironment(process.env);
   } catch {}
   const supabaseOrigin = config ? new URL(config.supabaseUrl).origin : "";
+  const pathname = request.nextUrl.pathname;
+  const publicMedia =
+    pathname === "/envio-vip" || pathname === "/api/envio-vip";
+  const r2Origin = pathname === "/envio-vip" ? mediaR2Origin(process.env) : "";
   const csp = [
     "default-src 'self'",
     `script-src 'self' 'nonce-${nonce}'${development ? " 'unsafe-eval'" : " 'strict-dynamic'"}`,
@@ -18,7 +23,7 @@ export async function proxy(request: NextRequest) {
     "worker-src 'self'",
     "manifest-src 'self'",
     "font-src 'self' data:",
-    `connect-src 'self' ${supabaseOrigin}${development ? " ws: http: https:" : ""}`,
+    `connect-src 'self' ${supabaseOrigin} ${r2Origin}${development ? " ws: http: https:" : ""}`,
     "object-src 'none'",
     "base-uri 'self'",
     "frame-ancestors 'none'",
@@ -29,7 +34,7 @@ export async function proxy(request: NextRequest) {
   headers.set("x-nonce", nonce);
   headers.set("Content-Security-Policy", csp);
   let response = NextResponse.next({ request: { headers } });
-  if (config && !isPublicPaymentRoute(request.nextUrl.pathname)) {
+  if (config && !publicMedia && !isPublicPaymentRoute(pathname)) {
     const supabase = createServerClient(
       config.supabaseUrl,
       config.publishableKey,

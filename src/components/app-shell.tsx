@@ -55,6 +55,9 @@ const Meetings = dynamic(() => import("./views/meetings"), {
 });
 const Week = dynamic(() => import("./views/week"), { loading: Skeleton });
 const MeetingEditor = dynamic(() => import("./meeting-editor"), { ssr: false });
+const ProjectMediaDialog = dynamic(() => import("./project-media"), {
+  ssr: false,
+});
 const GoogleResults = dynamic(() => import("./views/google-results"), {
   loading: Skeleton,
 });
@@ -123,6 +126,10 @@ function Shell({ initialView = "overview" }: { initialView?: View }) {
     validViews.has(initialView) ? initialView : "overview",
   );
   const [modal, setModal] = useState<ModalState | null>(null);
+  const mediaProject =
+    modal?.kind === "projectMedia"
+      ? state.projects.find((project) => project.id === modal.id)
+      : undefined;
   const [mobile, setMobile] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [hiddenValues, setHiddenValues] = useState(false);
@@ -473,6 +480,19 @@ function Shell({ initialView = "overview" }: { initialView?: View }) {
           day={modal.day}
           onClose={() => setModal(null)}
         />
+      ) : modal?.kind === "projectMedia" ? (
+        mediaProject && (
+          <ProjectMediaDialog
+            projectId={mediaProject.id}
+            projectName={mediaProject.name}
+            canInvite={
+              !!mediaProject.clientId && mediaProject.status !== "cancelled"
+            }
+            onClose={() =>
+              setModal({ kind: "projectDetail", id: mediaProject.id })
+            }
+          />
+        )
       ) : modal?.kind === "search" ? (
         <GlobalSearch open={open} onClose={() => setModal(null)} />
       ) : modal &&
