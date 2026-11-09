@@ -1,0 +1,44 @@
+import { randomBytes } from "node:crypto";
+import { z } from "zod";
+import { parseEnvironment } from "@/lib/config/environment";
+import { parseMediaConfig } from "@/lib/config/media";
+import { authorizedOwner, requireOrigin } from "@/lib/server/access";
+import { boundedJson, errorResponse, json } from "@/lib/server/http";
+import { mediaTokenHash, projectMedia } from "@/lib/server/media";
+
+const schema = z.strictObject({
+  projectId: z.uuid(),
+  action: z.enum(["status", "rotate", "revoke"]),
+});
+
+export async function POST(request: Request) {
+  try {
+    const app = parseEnvironment(process.env);
+    requireOrigin(request, app.appUrl);
+    const { supabase } = await authorizedOwner(false);
+    const input = schema.parse(await boundedJson(request, 8192));
+    const config = parseMediaConfig(process.env);
+    if (!config.enabled) return json({ available: false });
+    if (input.action === "status")
+      return json({
+        available: true,
+        project: await projectMedia(supabase, input.projectId),
+      });
+    if (input.action === "revoke")
+      return json({
+        available: true,
+        project: await projectMedia(supabase, input.projectId, null),
+      });
+    const token = randomBytes(32).toString("base64url");
+    const project = await projectMedia(
+      supabase,
+      input.projectId,
+      mediaTokenHash(token),
+    );
+    const link = new URL("/envio-vip", config.appUrl);
+    link.hash = token;
+    return json({ available: true, project, link: link.toString() });
+  } catch (error) {
+    return errorResponse(error);
+  }
+}

@@ -33,6 +33,7 @@ export type ModalState =
   | { kind: "note"; projectId: string }
   | { kind: "convert"; id: string }
   | { kind: "projectDetail"; id: string }
+  | { kind: "projectMedia"; id: string }
   | { kind: "clientDetail"; id: string }
   | { kind: "import"; workspace: Workspace }
   | { kind: "search" };
