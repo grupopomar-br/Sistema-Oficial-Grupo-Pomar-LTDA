@@ -41,7 +41,7 @@
     "@types/web-push": "3.6.4",
     "pglite-pg17": "npm:@electric-sql/pglite@0.4.5",
     "prettier": "3.9.10",
-    "supabase": "2.122.0",
+    "supabase": "3.0.0",
     "typescript": "7.0.2"
   }
 }
