@@ -1,10 +1,12 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import { pomarFixture } from "./helpers/pomar-fixture.mjs";
 import { newBase } from "../src/lib/domain/model.ts";
 import { mediaMetadata, metadataForFile } from "../src/lib/media/contracts.ts";
 import { matchesMediaSignature } from "../src/lib/media/signature.ts";
 import {
+  eraseMediaObject,
   mediaUploadUrl,
   mediaDownloadUrl,
   verifyMediaObject,
@@ -131,21 +133,54 @@ test("R2 assina envio imutável por objeto e confere cabeçalhos e bytes antes d
   assert.equal(await verifyMediaObject(config, id, item), "invalid");
 });
 
-test("PostgreSQL 17: convite revogável, arquivos só confirmados, cotas e isolamento do worker", async () => {
+test("R2 substitui o original por um objeto vazio na mesma chave do envio", async (t) => {
+  const id = crypto.randomUUID();
+  const ticket = await mediaUploadUrl(config, id, item, 600);
+  const path = new URL(ticket.url).pathname;
+  let status = 200;
+  t.mock.method(globalThis, "fetch", async (request) => {
+    assert.equal(new URL(request.url).pathname, path);
+    assert.equal(request.method, "PUT");
+    assert.equal(request.headers.get("if-none-match"), null);
+    assert.equal(request.headers.get("content-length"), "0");
+    assert.equal(request.headers.get("cache-control"), "private, no-store");
+    assert.match(request.headers.get("authorization"), /^AWS4-HMAC-SHA256 /);
+    assert.equal((await request.arrayBuffer()).byteLength, 0);
+    return new Response(null, { status });
+  });
+  await eraseMediaObject(config, id);
+  await eraseMediaObject(config, id);
+  status = 503;
+  await assert.rejects(eraseMediaObject(config, id), /R2 não confirmou/);
+});
+
+test("PostgreSQL 17: convites, cotas, remoção de envios existentes e acesso restrito", async () => {
+  const migration = "20261109173118_remover_midias_vip.sql";
   const { db, actor, worker, admin, client, other, command } =
-    await pomarFixture();
+    await pomarFixture({ skipMigrations: [migration] });
   const project = crypto.randomUUID(),
     second = crypto.randomUUID();
   const hash = "d".repeat(64),
     otherHash = "e".repeat(64),
     rotated = "f".repeat(64);
   const upload = crypto.randomUUID();
+  const pendingVideo = crypto.randomUUID();
   const rpc = async (sql, args = []) =>
     (await db.query(sql, args)).rows[0].value;
   const ownerView = (id = project) =>
     rpc("select pomar_media_project($1) value", [id]);
   const issue = (id, value) =>
     rpc("select pomar_media_set_link($1,$2) value", [id, value]);
+  const ownerViewWithRemovals = (changeLink = false, newHash = null) =>
+    rpc("select pomar_media_project_with_removals($1,$2,$3) value", [
+      project,
+      changeLink,
+      newHash,
+    ]);
+  const beginRemoval = (id = upload, scope = project) =>
+    rpc("select pomar_media_begin_removal($1,$2) value", [scope, id]);
+  const finishRemoval = (id = upload) =>
+    rpc("select pomar_private.media_finish_removal($1) value", [id]);
   const status = (value) =>
     rpc("select pomar_private.media_link_status($1) value", [value]);
   const reserve = (
@@ -243,14 +278,12 @@ test("PostgreSQL 17: convite revogável, arquivos só confirmados, cotas e isola
       true,
     );
     assert.equal((await reserve(hash)).received, true);
-    for (let i = 0; i < 3; i++)
-      await reserve(
-        hash,
-        crypto.randomUUID(),
-        "video.mp4",
-        "video/mp4",
-        500000000,
-      );
+    for (const videoId of [
+      pendingVideo,
+      crypto.randomUUID(),
+      crypto.randomUUID(),
+    ])
+      await reserve(hash, videoId, "video.mp4", "video/mp4", 500000000);
     await assert.rejects(
       reserve(hash, crypto.randomUUID(), "video.mp4", "video/mp4", 500000000),
       /POMAR_MEDIA_QUOTA/,
@@ -259,7 +292,85 @@ test("PostgreSQL 17: convite revogável, arquivos só confirmados, cotas e isola
     assert.equal((await ownerView()).files[0].file_name, "ficticio.png");
     assert.equal((await ownerView()).pending_count, 3);
     assert.equal((await ownerView(second)).files.length, 0);
-    await issue(project, rotated);
+    const beforeRemoval = await ownerView();
+
+    await admin();
+    await db.exec(
+      await readFile(
+        new URL(`../supabase/migrations/${migration}`, import.meta.url),
+        "utf8",
+      ),
+    );
+    await db.exec("set session authorization anon");
+    await assert.rejects(beginRemoval(), { code: "42501" });
+    await actor(other);
+    await assert.rejects(beginRemoval(), /POMAR_ACCESS/);
+    await actor();
+    await db.exec("select set_config('request.jwt.claims', '{}', false)");
+    await assert.rejects(beginRemoval(), /POMAR_ACCESS/);
+    await actor();
+    assert.deepEqual(await ownerViewWithRemovals(), {
+      ...beforeRemoval,
+      removing_ids: [],
+    });
+    await assert.rejects(beginRemoval(upload, second), /POMAR_NOT_FOUND/);
+    await assert.rejects(beginRemoval(pendingVideo), /POMAR_NOT_FOUND/);
+    await assert.rejects(finishRemoval(), { code: "42501" });
+    assert.equal(await beginRemoval(), true);
+    assert.equal(await beginRemoval(), true);
+    assert.deepEqual(await ownerViewWithRemovals(), {
+      ...beforeRemoval,
+      removing_ids: [upload],
+    });
+    assert.deepEqual(await ownerView(), beforeRemoval);
+
+    await worker("pomar_media_worker");
+    await assert.rejects(beginRemoval(), { code: "42501" });
+    await assert.rejects(
+      db.query("select * from pomar_private.media_removals"),
+      {
+        code: "42501",
+      },
+    );
+    assert.equal(await finishRemoval(pendingVideo), false);
+    const fourthVideo = crypto.randomUUID();
+    await assert.rejects(
+      reserve(hash, fourthVideo, "video.mp4", "video/mp4", 500000000),
+      /POMAR_MEDIA_QUOTA/,
+    );
+    assert.equal(await finishRemoval(), true);
+    assert.equal(await finishRemoval(), true);
+    await assert.rejects(reserve(hash), /POMAR_KEY_REUSED/);
+    assert.equal(
+      await rpc("select pomar_private.media_check($1,$2) value", [
+        hash,
+        upload,
+      ]),
+      null,
+    );
+    assert.equal(
+      await rpc("select pomar_private.media_confirm($1,$2) value", [
+        hash,
+        upload,
+      ]),
+      false,
+    );
+    assert.equal(
+      (await reserve(hash, fourthVideo, "video.mp4", "video/mp4", 500000000))
+        .received,
+      false,
+    );
+    await actor();
+    assert.equal(await beginRemoval(), false);
+    await assert.rejects(beginRemoval(upload, second), /POMAR_NOT_FOUND/);
+    assert.deepEqual(await ownerViewWithRemovals(), {
+      expires_at: beforeRemoval.expires_at,
+      files: [],
+      used_bytes: 2000000000,
+      pending_count: 4,
+      removing_ids: [],
+    });
+    assert.ok((await ownerViewWithRemovals(true, rotated)).expires_at);
     await admin();
     await db.query(
       "update pomar_private.media_links set expires_at=now()-interval '1 minute' where token_hash=$1",
