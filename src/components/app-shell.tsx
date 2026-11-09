@@ -6,6 +6,7 @@ import {
   LayoutDashboard,
   BarChart3,
   CalendarClock,
+  CalendarDays,
   BookOpen,
   Lightbulb,
   CreditCard,
@@ -52,6 +53,8 @@ import { ProfileAvatar } from "./profile-avatar";
 const Meetings = dynamic(() => import("./views/meetings"), {
   loading: Skeleton,
 });
+const Week = dynamic(() => import("./views/week"), { loading: Skeleton });
+const MeetingEditor = dynamic(() => import("./meeting-editor"), { ssr: false });
 const GoogleResults = dynamic(() => import("./views/google-results"), {
   loading: Skeleton,
 });
@@ -85,6 +88,7 @@ const SettingsView = dynamic(() => import("./views/settings"), {
 const EntityModal = dynamic(() => import("./entity-modal"), { ssr: false });
 const navigation = [
   { id: "overview", label: "Visão geral", icon: LayoutDashboard },
+  { id: "week", label: "Semana", icon: CalendarDays },
   { id: "projects", label: "Projetos", icon: FolderKanban },
   { id: "tasks", label: "Tarefas", icon: ListTodo },
   { id: "clients", label: "Clientes", icon: Users },
@@ -116,25 +120,7 @@ function Shell({ initialView = "overview" }: { initialView?: View }) {
   } = useWorkspace();
   const { feed: notificationFeed } = useNotifications();
   const [view, setView] = useState<View>(
-    [
-      "collections",
-      "results",
-      "ideas",
-      "methodologies",
-      "meetings",
-      "notifications",
-      "overview",
-      "clients",
-      "projects",
-      "tasks",
-      "finance",
-      "commercial",
-      "alerts",
-      "history",
-      "settings",
-    ].includes(initialView)
-      ? initialView
-      : "overview",
+    validViews.has(initialView) ? initialView : "overview",
   );
   const [modal, setModal] = useState<ModalState | null>(null);
   const [mobile, setMobile] = useState(false);
@@ -456,6 +442,7 @@ function Shell({ initialView = "overview" }: { initialView?: View }) {
               {view === "collections" && <Collections {...viewProps} />}
               {view === "results" && <GoogleResults {...viewProps} />}
               {view === "meetings" && <Meetings {...viewProps} />}
+              {view === "week" && <Week {...viewProps} />}
               {view === "notifications" && <Notifications {...viewProps} />}
               {view === "ideas" && <Ideas {...viewProps} />}
               {view === "methodologies" && <Methodologies />}
@@ -480,6 +467,12 @@ function Shell({ initialView = "overview" }: { initialView?: View }) {
       </div>
       {modal?.kind === "idea" ? (
         <IdeaEditor id={modal.id} onClose={() => setModal(null)} />
+      ) : modal?.kind === "meeting" ? (
+        <MeetingEditor
+          id={modal.id}
+          day={modal.day}
+          onClose={() => setModal(null)}
+        />
       ) : modal?.kind === "search" ? (
         <GlobalSearch open={open} onClose={() => setModal(null)} />
       ) : modal &&
