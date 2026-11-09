@@ -183,6 +183,29 @@
   width: 100%;
   accent-color: var(--green-2);
 }
+.projectFiles li {
+  flex-wrap: wrap;
+}
+.projectFiles li > .fileInfo {
+  flex: 1 1 11rem;
+}
+.projectFiles li > .fileActions {
+  flex: 0 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.projectFiles li > .fileConfirmation {
+  flex: 1 0 100%;
+  display: grid;
+  gap: 8px;
+  border-top: 1px solid var(--line);
+  padding-top: 9px;
+  font-size: 13px;
+}
+.fileConfirmation p {
+  margin: 0;
+}
 .card .send {
   width: 100%;
   min-height: 49px;

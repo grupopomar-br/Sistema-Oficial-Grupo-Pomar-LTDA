@@ -92,6 +92,7 @@ export const projectMediaSchema = z.strictObject({
   expiresAt: timestamp.nullable(),
   usedBytes: z.number().int().nonnegative(),
   pendingCount: z.number().int().nonnegative(),
+  removingIds: z.array(z.uuid()).max(100).optional(),
   files: z
     .array(
       z.strictObject({

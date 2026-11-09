@@ -15,7 +15,10 @@ export async function GET(request: Request) {
     const id = z.uuid().parse(params.get("id"));
     const projectId = z.uuid().parse(params.get("projectId"));
     const project = await projectMedia(supabase, projectId);
-    if (!project.files.some((file) => file.id === id))
+    if (
+      project.removingIds?.includes(id) ||
+      !project.files.some((file) => file.id === id)
+    )
       throw new AccessError("Arquivo não encontrado neste projeto.", 404);
     return new Response(null, {
       status: 303,

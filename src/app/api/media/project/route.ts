@@ -4,12 +4,23 @@ import { ConfigurationError, parseEnvironment } from "@/lib/config/environment";
 import { parseMediaConfig } from "@/lib/config/media";
 import { authorizedOwner, requireOrigin } from "@/lib/server/access";
 import { boundedJson, errorResponse, json } from "@/lib/server/http";
-import { mediaTokenHash, projectMedia } from "@/lib/server/media";
+import {
+  mediaTokenHash,
+  projectMedia,
+  removeProjectMedia,
+} from "@/lib/server/media";
 
-const schema = z.strictObject({
-  projectId: z.uuid(),
-  action: z.enum(["status", "rotate", "revoke"]),
-});
+const schema = z.discriminatedUnion("action", [
+  z.strictObject({
+    projectId: z.uuid(),
+    action: z.enum(["status", "rotate", "revoke"]),
+  }),
+  z.strictObject({
+    projectId: z.uuid(),
+    action: z.literal("remove"),
+    id: z.uuid(),
+  }),
+]);
 
 export async function POST(request: Request) {
   let ownerAuthorized = false;
@@ -21,7 +32,9 @@ export async function POST(request: Request) {
     const input = schema.parse(await boundedJson(request, 8192));
     const config = parseMediaConfig(process.env);
     if (!config.enabled) return json({ available: false });
-    if (input.action === "status")
+    if (input.action === "remove")
+      await removeProjectMedia(supabase, config, input.projectId, input.id);
+    if (input.action === "status" || input.action === "remove")
       return json({
         available: true,
         project: await projectMedia(supabase, input.projectId),

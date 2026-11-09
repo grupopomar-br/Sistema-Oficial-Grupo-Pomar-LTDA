@@ -25,7 +25,7 @@ No bucket, salve a política em **CORS Policy**. Use a origem exata do domínio 
 
 ## Supabase e Vercel
 
-1. No SQL Editor do mesmo projeto da Central, aplique [a migração da Área VIP](../supabase/migrations/20261109015528_portal_vip_midias.sql) inteira, uma vez.
+1. No SQL Editor do mesmo projeto da Central, aplique [a migração da Área VIP](../supabase/migrations/20261109015528_portal_vip_midias.sql) inteira, uma vez. Em seguida, aplique [a migração de remoção de mídias](../supabase/migrations/20261109173118_remover_midias_vip.sql).
 2. Gere uma senha exclusiva para o papel de mídias. Em uma consulta privada, troque o marcador abaixo pela senha e execute. Guarde o valor na configuração protegida da Vercel.
 
 ```sql
@@ -60,3 +60,7 @@ Gere um convite, abra-o em uma janela sem sessão na Central e envie uma foto e 
 Convites valem sete dias. O link completo aparece na hora da geração. Quem o recebe pode enviar mídia durante a validade. Revogar o convite bloqueia novas autorizações e confirmações. Autorizações já emitidas para um único objeto expiram em até dez minutos.
 
 O portal aceita PNG, JPG, HEIC, HEIF e WebP até 30 MB, e MP4, MOV e WebM até 500 MB. A conferência usa tamanho e assinatura inicial do formato. Os originais são oferecidos para download. Cada projeto tem até 100 reservas e 2 GB. O teto da aplicação é de 8 GB para o bucket dedicado, incluindo reservas pendentes. Uma repetição na mesma seleção reaproveita a reserva do arquivo. A franquia do R2 Standard é compartilhada com os demais buckets da conta. [Preços do R2](https://developers.cloudflare.com/r2/pricing/)
+
+## Remover um arquivo recebido
+
+Em **Mídias VIP → Arquivos recebidos**, escolha **Remover** ao lado do arquivo e confirme. A Central apaga o conteúdo original no R2 e libera a cota do projeto. Um objeto de zero bytes impede que uma autorização de envio antiga recrie o arquivo. Se a remoção for interrompida, use **Concluir remoção** na mesma linha.

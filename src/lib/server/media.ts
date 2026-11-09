@@ -9,7 +9,11 @@ import {
   type MediaRequest,
   type MediaType,
 } from "../media/contracts";
-import { mediaUploadUrl, verifyMediaObject } from "../media/r2";
+import {
+  eraseMediaObject,
+  mediaUploadUrl,
+  verifyMediaObject,
+} from "../media/r2";
 import { AccessError } from "./access";
 import { databaseFailure } from "./workspace";
 
@@ -46,10 +50,17 @@ export async function projectMedia(
   hash?: string | null,
 ) {
   const args = { p_project: projectId };
-  const { data, error } =
-    hash === undefined
-      ? await supabase.rpc("pomar_media_project", args)
-      : await supabase.rpc("pomar_media_set_link", { ...args, p_hash: hash });
+  let response = await supabase.rpc("pomar_media_project_with_removals", {
+    ...args,
+    p_change_link: hash !== undefined,
+    p_hash: hash ?? null,
+  });
+  if (response.error?.code === "PGRST202")
+    response =
+      hash === undefined
+        ? await supabase.rpc("pomar_media_project", args)
+        : await supabase.rpc("pomar_media_set_link", { ...args, p_hash: hash });
+  const { data, error } = response;
   if (error?.code === "PGRST202")
     throw new AccessError(
       "A migração da Área VIP ainda precisa ser aplicada.",
@@ -57,6 +68,41 @@ export async function projectMedia(
     );
   if (error) throw databaseFailure(error);
   return projectMediaSchema.parse(camelize(data));
+}
+
+export async function removeProjectMedia(
+  supabase: SupabaseClient,
+  config: MediaConfig,
+  projectId: string,
+  id: string,
+) {
+  const { data, error } = await supabase.rpc("pomar_media_begin_removal", {
+    p_project: projectId,
+    p_id: id,
+  });
+  if (error?.code === "PGRST202")
+    throw new AccessError(
+      "A migração de remoção de mídias ainda precisa ser aplicada.",
+      503,
+    );
+  if (error) throw databaseFailure(error);
+  if (data === false) return;
+  if (data !== true)
+    throw new AccessError("Não foi possível iniciar a remoção.", 503);
+
+  try {
+    await eraseMediaObject(config, id);
+    const sql = mediaDatabase(config);
+    const [row] =
+      await sql`select pomar_private.media_finish_removal(${id}::uuid) as removed`;
+    if (row?.removed !== true)
+      throw new Error("Remoção sem registro no banco.");
+  } catch {
+    throw new AccessError(
+      "A remoção ficou pendente. Tente concluí-la novamente.",
+      503,
+    );
+  }
 }
 
 export async function processMediaRequest(

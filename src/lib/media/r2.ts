@@ -52,6 +52,24 @@ export async function mediaDownloadUrl(config: MediaConfig, id: string) {
   ).url;
 }
 
+export async function eraseMediaObject(config: MediaConfig, id: string) {
+  // Keep an empty object at this key so old If-None-Match PUTs cannot recreate it.
+  const response = await mediaClient(config).fetch(objectUrl(config, id), {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/octet-stream",
+      "Content-Length": "0",
+      "Cache-Control": "private, no-store",
+    },
+    body: "",
+    redirect: "error",
+    signal: AbortSignal.timeout(10_000),
+    aws: { allHeaders: true },
+  });
+  await response.body?.cancel();
+  if (!response.ok) throw new Error("O R2 não confirmou a remoção.");
+}
+
 export async function verifyMediaObject(
   config: MediaConfig,
   id: string,
