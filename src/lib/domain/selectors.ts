@@ -1,6 +1,7 @@
 import type { Workspace, Priority, Project } from "./model.ts";
 import { daysBetween, todayDate } from "./dates.ts";
 import { installmentRemaining } from "./workspace.ts";
+import { cashMovement } from "./cash-movement.ts";
 
 export const isActiveProject = (project: Project) =>
   ["planning", "active", "waiting", "paused"].includes(project.status);
@@ -209,12 +210,10 @@ export function getFinanceSummary(state: Workspace, month: string) {
   const confirmed = state.receipts.filter(
     (item) => item.status === "confirmed",
   );
-  const received = confirmed
-    .filter((item) => item.receivedOn?.startsWith(month))
-    .reduce((sum, item) => sum + item.amountCents, 0);
-  const paidExpenses = state.expenses
-    .filter((item) => item.status === "paid" && item.paidOn?.startsWith(month))
-    .reduce((sum, item) => sum + item.amountCents, 0);
+  const { received, paidExpenses, refunded, cashBalance } = cashMovement(
+    state,
+    [month],
+  )[0];
   const activeContracts = new Set(
     state.contracts
       .filter((item) => item.status === "active")
@@ -223,9 +222,6 @@ export function getFinanceSummary(state: Workspace, month: string) {
   const open = state.installments.filter(
     (item) => item.status === "open" && activeContracts.has(item.contractId),
   );
-  const refunded = state.refunds
-    .filter((item) => item.occurredOn.startsWith(month))
-    .reduce((sum, item) => sum + item.amountCents, 0);
   return {
     refunded,
     signed: state.contracts
@@ -236,7 +232,7 @@ export function getFinanceSummary(state: Workspace, month: string) {
       .reduce((sum, item) => sum + item.totalCents, 0),
     received,
     paidExpenses,
-    cashBalance: received - paidExpenses - refunded,
+    cashBalance,
     expected: open
       .filter((item) => item.dueOn.startsWith(month))
       .reduce((sum, item) => sum + installmentRemaining(state, item.id), 0),

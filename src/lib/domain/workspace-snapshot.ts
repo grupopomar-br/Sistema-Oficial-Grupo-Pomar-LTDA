@@ -8,6 +8,7 @@ type WorkspaceRpcResult<T> = {
 export async function fetchWorkspaceSnapshot<T>(
   rpc: (
     name:
+      | "pomar_workspace_expense_purposes"
       | "pomar_workspace_collection_queue"
       | "pomar_workspace_client_terms"
       | "pomar_workspace_cards"
@@ -18,6 +19,8 @@ export async function fetchWorkspaceSnapshot<T>(
       | "pomar_workspace",
   ) => PromiseLike<WorkspaceRpcResult<T>>,
 ): Promise<WorkspaceRpcResult<T>> {
+  const finance = await rpc("pomar_workspace_expense_purposes");
+  if (finance.error?.code !== "PGRST202") return finance;
   const collectionQueue = await rpc("pomar_workspace_collection_queue");
   if (collectionQueue.error?.code !== "PGRST202") return collectionQueue;
   const clientTerms = await rpc("pomar_workspace_client_terms");

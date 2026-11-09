@@ -1,0 +1,133 @@
+.layout {
+  display: grid;
+  gap: 16px;
+}
+.layout > section {
+  min-width: 0;
+}
+.body {
+  padding: 16px 20px;
+}
+.legend,
+.bars,
+.movement div,
+.groups li > div {
+  display: flex;
+  gap: 8px;
+}
+.legend {
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  font-size: 12px;
+  color: #53665d;
+}
+.inflow {
+  --bar: #2e7460;
+}
+.outflow {
+  --bar: #b17c52;
+}
+.legend span::before {
+  content: "";
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 3px;
+  margin-right: 6px;
+  background: var(--bar);
+}
+.chart {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 5px;
+  margin: 16px 0;
+}
+.column {
+  min-width: 0;
+  color: #53665d;
+  font-size: 11px;
+  text-align: center;
+}
+.bars {
+  align-items: flex-end;
+  justify-content: center;
+  height: 138px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 5px;
+}
+.bars span {
+  width: min(17px, 30%);
+  border-radius: 5px 5px 0 0;
+  background: var(--bar);
+}
+.details summary {
+  min-height: 44px;
+  padding: 10px 0;
+  color: var(--green);
+  font-weight: 600;
+  cursor: pointer;
+}
+.note {
+  color: #53665d;
+  font-size: 12px;
+}
+.movement {
+  margin: 0 0 14px;
+}
+.movement div,
+.groups li > div {
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+.movement div {
+  padding: 7px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 12px;
+  color: #53665d;
+}
+.movement dd,
+.groups strong {
+  margin: 0;
+  color: var(--green);
+  font-size: 14px;
+  font-weight: 680;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.movement .balance {
+  margin: 8px 0;
+  padding: 10px;
+  border-radius: 8px;
+  background: var(--soft);
+}
+.groups {
+  display: grid;
+  gap: 11px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.groups li {
+  font-size: 13px;
+  color: var(--ink);
+}
+.groups progress {
+  display: block;
+  width: 100%;
+  height: 8px;
+  margin-top: 5px;
+  accent-color: var(--green-2);
+}
+@media (min-width: 1050px) {
+  .layout {
+    grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+  }
+  .distribution {
+    grid-column: 1 / -1;
+  }
+  .groups {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px 24px;
+  }
+}

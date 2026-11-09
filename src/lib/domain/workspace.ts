@@ -575,7 +575,10 @@ export function applyCommand(
           command.value.paidOn <= todayDate(new Date(now)),
         "A data do pagamento não pode estar no futuro.",
       );
-      save(state.expenses, command.value);
+      save(state.expenses, {
+        ...state.expenses.find((expense) => expense.id === command.value.id),
+        ...command.value,
+      });
       log(
         "expense",
         command.value.id,
