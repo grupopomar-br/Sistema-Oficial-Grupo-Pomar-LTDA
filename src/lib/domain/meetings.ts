@@ -47,16 +47,17 @@ export const meetingLabels = {
   cancelled: "Cancelada",
 } as const;
 const zone = "America/Fortaleza";
+const localFormatter = new Intl.DateTimeFormat("en-CA", {
+  timeZone: zone,
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+  hourCycle: "h23",
+});
 export function meetingLocalTime(iso: string) {
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: zone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    hourCycle: "h23",
-  }).formatToParts(new Date(iso));
+  const parts = localFormatter.formatToParts(new Date(iso));
   const get = (t: string) => parts.find((p) => p.type === t)?.value;
   return `${get("year")}-${get("month")}-${get("day")}T${get("hour")}:${get("minute")}`;
 }

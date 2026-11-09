@@ -32,7 +32,15 @@ export default function EntityModal({
 }: {
   modal: Exclude<
     ModalState,
-    { kind: "projectDetail" | "clientDetail" | "search" | "import" | "idea" }
+    {
+      kind:
+        | "projectDetail"
+        | "clientDetail"
+        | "search"
+        | "import"
+        | "idea"
+        | "meeting";
+    }
   >;
   onClose: () => void;
 }) {
@@ -419,8 +427,8 @@ export default function EntityModal({
       projectId: modal.projectId ?? null,
       priority: "P2",
       status: "pending",
-      dueOn: today,
-      focusOn: null,
+      dueOn: modal.focusOn ? null : today,
+      focusOn: modal.focusOn ?? null,
       description: "",
       completedAt: null,
     };
