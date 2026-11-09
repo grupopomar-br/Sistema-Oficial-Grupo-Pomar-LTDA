@@ -11,8 +11,9 @@ export function collectionRows(state: Workspace, today: string) {
     state.collectionAgreements.map((a) => [a.contractId, a]),
   );
   const actionsByPart = new Map<string, Workspace["collectionActions"]>();
-  for (const action of [...state.collectionActions].sort((a, b) =>
-    b.createdAt.localeCompare(a.createdAt),
+  for (const action of [...state.collectionActions].sort(
+    (a, b) =>
+      b.createdAt.localeCompare(a.createdAt) || b.id.localeCompare(a.id),
   )) {
     const list = actionsByPart.get(action.installmentId) ?? [];
     list.push(action);
@@ -32,6 +33,9 @@ export function collectionRows(state: Workspace, today: string) {
       const age = Math.max(0, daysBetween(part.dueOn, today));
       const lastActions = actionsByPart.get(part.id) ?? [];
       const promise = lastActions.find((a) => a.kind === "promise");
+      const queue = lastActions.find(
+        (a) => a.kind === "withdraw" || a.kind === "resume",
+      );
       const latestCharge = chargeByPart.get(part.id);
       return [
         {
@@ -43,6 +47,7 @@ export function collectionRows(state: Workspace, today: string) {
           agreement,
           actions: lastActions,
           promise,
+          withdrawn: queue?.kind === "withdraw" ? queue : null,
           latestCharge,
           chargeUsed: latestCharge ? usedCharges.has(latestCharge.id) : false,
           late: part.dueOn < today,
@@ -69,7 +74,8 @@ export function collectionSummary(state: Workspace, today: string) {
     total: rows.reduce((s, r) => s + r.remaining, 0),
     overdue: rows.filter((r) => r.late).reduce((s, r) => s + r.remaining, 0),
     brokenPromises: rows.filter(
-      (r) => r.promise?.promiseOn && r.promise.promiseOn < today,
+      (r) =>
+        !r.withdrawn && r.promise?.promiseOn && r.promise.promiseOn < today,
     ).length,
     review: state.providerPayments
       .filter((p) => p.mode === "live" && p.reviewReason)

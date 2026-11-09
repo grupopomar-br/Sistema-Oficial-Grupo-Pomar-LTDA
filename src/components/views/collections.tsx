@@ -8,6 +8,8 @@ import {
   CreditCard,
   FileCheck,
   MessageSquare,
+  Pause,
+  Play,
   Plus,
   ShieldCheck,
   Wallet,
@@ -36,7 +38,14 @@ import { parseBRL } from "@/lib/domain/finance";
 import type { CollectionAgreement } from "@/lib/domain/extensions";
 type Row = ReturnType<typeof collectionSummary>["rows"][number];
 type Dialog = {
-  kind: "terms" | "contact" | "message" | "link" | "recover";
+  kind:
+    | "terms"
+    | "contact"
+    | "message"
+    | "link"
+    | "recover"
+    | "withdraw"
+    | "resume";
   row: Row;
   chargeId?: string;
 };
@@ -70,10 +79,14 @@ export default function Collections(props: ViewProps) {
     () => collectionSummary(state, props.today),
     [state, props.today],
   );
+  const queueReady = mode === "local" || state.collectionQueueReady;
+  const withdrawnCount = summary.rows.filter((row) => row.withdrawn).length;
   const format = (v: number) => (props.hiddenValues ? "••••" : money(v));
   const rows = summary.rows.filter(
     (row) =>
+      Boolean(row.withdrawn) === (age === "withdrawn") &&
       (age === "all" ||
+        age === "withdrawn" ||
         (age === "overdue" && row.late) ||
         age === row.bucket) &&
       `${row.client?.name ?? ""} ${row.contract.title}`
@@ -138,7 +151,11 @@ export default function Collections(props: ViewProps) {
         <StatCard
           title="Saldo vencido"
           value={format(summary.overdue)}
-          detail="Parcelas abertas após o vencimento"
+          detail={
+            withdrawnCount
+              ? "Inclui parcelas fora da fila"
+              : "Parcelas abertas após o vencimento"
+          }
           icon={Clock}
           accent
         />
@@ -297,13 +314,20 @@ export default function Collections(props: ViewProps) {
             setPage(1);
           }}
         >
-          <option value="all">Todos os vencimentos</option>
+          <option value="all">
+            {queueReady
+              ? "Fila ativa · todos os vencimentos"
+              : "Todos os vencimentos"}
+          </option>
           <option value="overdue">Somente vencidos</option>
           <option value="current">No prazo</option>
           <option value="1_7">1 a 7 dias</option>
           <option value="8_15">8 a 15 dias</option>
           <option value="16_30">16 a 30 dias</option>
           <option value="31_plus">Mais de 30 dias</option>
+          {queueReady && (
+            <option value="withdrawn">Fora da fila ({withdrawnCount})</option>
+          )}
         </select>
         <span className="result-count">{rows.length} parcelas</span>
       </div>
@@ -321,7 +345,7 @@ export default function Collections(props: ViewProps) {
               );
             return (
               <article
-                className={`panel collection-card ${row.late ? "collection-late" : ""}`}
+                className={`panel collection-card ${row.late && !row.withdrawn ? "collection-late" : ""}`}
                 key={row.part.id}
               >
                 <div className="collection-card-main">
@@ -338,10 +362,20 @@ export default function Collections(props: ViewProps) {
                     </div>
                     <div className="collection-amount">
                       <strong>{format(row.remaining)}</strong>
-                      <Badge tone={row.late ? "danger" : "green"}>
-                        {row.late
-                          ? `${row.age} ${row.age === 1 ? "dia" : "dias"} de atraso`
-                          : "No prazo"}
+                      <Badge
+                        tone={
+                          row.withdrawn
+                            ? "neutral"
+                            : row.late
+                              ? "danger"
+                              : "green"
+                        }
+                      >
+                        {row.withdrawn
+                          ? "Fora da fila"
+                          : row.late
+                            ? `${row.age} ${row.age === 1 ? "dia" : "dias"} de atraso`
+                            : "No prazo"}
                       </Badge>
                     </div>
                   </div>
@@ -377,59 +411,94 @@ export default function Collections(props: ViewProps) {
                       </span>
                     )}
                   </div>
-                  {row.actions[0] && (
+                  {row.withdrawn ? (
                     <p className="last-contact">
-                      Último registro: {row.actions[0].note}
+                      Motivo da retirada · {row.withdrawn.note}
                     </p>
+                  ) : (
+                    row.actions[0] && (
+                      <p className="last-contact">
+                        Último registro: {row.actions[0].note}
+                      </p>
+                    )
                   )}
                 </div>
                 <div className="collection-card-actions">
-                  {link?.status === "ready" && mode === "cloud" && (
-                    <Button
-                      onClick={() =>
-                        setDialog({ kind: "recover", row, chargeId: link.id })
-                      }
-                      disabled={!integration.enabled}
-                    >
-                      Conferir order existente
-                    </Button>
-                  )}
-                  <Button onClick={() => setDialog({ kind: "message", row })}>
-                    <Copy size={15} />
-                    Preparar mensagem
-                  </Button>
-                  <Button onClick={() => setDialog({ kind: "contact", row })}>
-                    <MessageSquare size={15} />
-                    Registrar contato
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    onClick={() => setDialog({ kind: "terms", row })}
-                  >
-                    Condições
-                    <ArrowUpRight size={14} />
-                  </Button>
-                  {validLink ? (
-                    <a
-                      href={link.checkoutUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="button button-primary"
-                    >
-                      {link.mode === "test"
-                        ? "Testar checkout"
-                        : "Abrir checkout"}
-                      <ArrowUpRight size={15} />
-                    </a>
-                  ) : (
+                  {row.withdrawn ? (
                     <Button
                       variant="primary"
-                      onClick={() => setDialog({ kind: "link", row })}
-                      disabled={!integration.enabled}
+                      onClick={() => setDialog({ kind: "resume", row })}
                     >
-                      <CreditCard size={15} />
-                      Gerar link
+                      <Play size={15} />
+                      Retomar cobrança
                     </Button>
+                  ) : (
+                    <>
+                      {link?.status === "ready" && mode === "cloud" && (
+                        <Button
+                          onClick={() =>
+                            setDialog({
+                              kind: "recover",
+                              row,
+                              chargeId: link.id,
+                            })
+                          }
+                          disabled={!integration.enabled}
+                        >
+                          Conferir order existente
+                        </Button>
+                      )}
+                      <Button
+                        onClick={() => setDialog({ kind: "message", row })}
+                      >
+                        <Copy size={15} />
+                        Preparar mensagem
+                      </Button>
+                      <Button
+                        onClick={() => setDialog({ kind: "contact", row })}
+                      >
+                        <MessageSquare size={15} />
+                        Registrar contato
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        onClick={() => setDialog({ kind: "terms", row })}
+                      >
+                        Condições
+                        <ArrowUpRight size={14} />
+                      </Button>
+                      {queueReady && (
+                        <Button
+                          variant="ghost"
+                          onClick={() => setDialog({ kind: "withdraw", row })}
+                        >
+                          <Pause size={15} />
+                          Retirar da fila
+                        </Button>
+                      )}
+                      {validLink ? (
+                        <a
+                          href={link.checkoutUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="button button-primary"
+                        >
+                          {link.mode === "test"
+                            ? "Testar checkout"
+                            : "Abrir checkout"}
+                          <ArrowUpRight size={15} />
+                        </a>
+                      ) : (
+                        <Button
+                          variant="primary"
+                          onClick={() => setDialog({ kind: "link", row })}
+                          disabled={!integration.enabled}
+                        >
+                          <CreditCard size={15} />
+                          Gerar link
+                        </Button>
+                      )}
+                    </>
                   )}
                 </div>
               </article>
@@ -440,7 +509,11 @@ export default function Collections(props: ViewProps) {
         <div className="panel">
           <EmptyState
             icon={FileCheck}
-            title="Nenhuma parcela aberta neste filtro."
+            title={
+              age === "withdrawn"
+                ? "Nenhuma parcela fora da fila."
+                : "Nenhuma parcela aberta neste filtro."
+            }
             description="Cadastre contratos e vencimentos para acompanhar entrada, entrega e recebimento com clareza."
             action="Ver financeiro"
             onAction={() => props.navigate("finance")}
@@ -586,6 +659,27 @@ function CollectionDialog({
           )
         )
           onClose();
+      } else if (dialog.kind === "withdraw" || dialog.kind === "resume") {
+        if (
+          await execute(
+            {
+              type: "addCollectionAction",
+              value: {
+                ...base,
+                installmentId: dialog.row.part.id,
+                kind: dialog.kind,
+                channel: "manual",
+                note:
+                  dialog.kind === "withdraw"
+                    ? text("note")
+                    : "Cobrança retomada.",
+                promiseOn: null,
+              },
+            },
+            base.id,
+          )
+        )
+          onClose();
       } else if (dialog.kind === "contact") {
         if (
           await execute(
@@ -662,6 +756,38 @@ function CollectionDialog({
       setBusy(false);
     }
   };
+  if (dialog.kind === "withdraw" || dialog.kind === "resume") {
+    const removing = dialog.kind === "withdraw";
+    const title = removing ? "Retirar cobrança da fila" : "Retomar cobrança";
+    return (
+      <Modal
+        title={title}
+        subtitle={dialog.row.contract.title}
+        onClose={onClose}
+      >
+        <form onSubmit={submit}>
+          <p className="inline-note">
+            {removing
+              ? "A parcela ficará em Fora da fila. O saldo e o vencimento continuam no Financeiro. Um link já emitido continua disponível até sua validade."
+              : "A parcela volta para a fila com o vencimento registrado no Financeiro."}
+          </p>
+          {removing && (
+            <Field label="Motivo da retirada">
+              <textarea
+                name="note"
+                minLength={3}
+                maxLength={2000}
+                rows={3}
+                required
+                autoFocus
+              />
+            </Field>
+          )}
+          {footer(removing ? "Retirar da fila" : "Retomar cobrança")}
+        </form>
+      </Modal>
+    );
+  }
   return (
     <Modal
       title={

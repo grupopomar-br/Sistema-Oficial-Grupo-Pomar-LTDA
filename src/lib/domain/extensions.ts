@@ -54,7 +54,14 @@ export const collectionActionSchema = z
   .strictObject({
     ...base,
     installmentId: id,
-    kind: z.enum(["contact", "reminder", "promise", "dispute"]),
+    kind: z.enum([
+      "contact",
+      "reminder",
+      "promise",
+      "dispute",
+      "withdraw",
+      "resume",
+    ]),
     channel: z.enum(["manual", "email", "whatsapp", "phone"]),
     note: z.string().trim().min(3).max(2000),
     promiseOn: date.nullable(),
@@ -62,6 +69,12 @@ export const collectionActionSchema = z
   .refine(
     (v) => v.kind !== "promise" || !!v.promiseOn,
     "Informe a data prometida para o pagamento.",
+  )
+  .refine(
+    (v) =>
+      (v.kind !== "withdraw" && v.kind !== "resume") ||
+      (v.channel === "manual" && v.promiseOn === null),
+    "A alteração da fila deve ser registrada como ação interna.",
   );
 export const chargeSchema = z.strictObject({
   ...base,
