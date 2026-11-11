@@ -83,6 +83,7 @@ export default function Tasks({ open, today }: ViewProps) {
             {state.projects.map((item) => (
               <option key={item.id} value={item.id}>
                 {item.name}
+                {item.removedAt ? " · removido" : ""}
               </option>
             ))}
           </select>

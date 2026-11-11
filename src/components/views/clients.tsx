@@ -111,8 +111,9 @@ export default function Clients({ open, today }: ViewProps) {
                 <span>
                   <Building2 size={14} />
                   {
-                    state.projects.filter((item) => item.clientId === client.id)
-                      .length
+                    state.projects.filter(
+                      (item) => !item.removedAt && item.clientId === client.id,
+                    ).length
                   }{" "}
                   projetos
                 </span>

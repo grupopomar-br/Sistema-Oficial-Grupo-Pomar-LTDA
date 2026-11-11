@@ -24,22 +24,29 @@ import { labels } from "@/lib/domain/model";
 import { shortDate } from "@/lib/domain/dates";
 
 export default function Projects({ open, today }: ViewProps) {
-  const { state } = useWorkspace();
+  const { state, mode } = useWorkspace();
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("open");
   const [area, setArea] = useState("all");
   const [priority, setPriority] = useState("all");
   const [layout, setLayout] = useState("grid");
   const [page, setPage] = useState(1);
+  const removalReady = mode === "local" || state.projectRemovalReady;
+  const removedCount = state.projects.filter((item) => item.removedAt).length;
+  const projectCount =
+    status === "removed" ? removedCount : state.projects.length - removedCount;
   const filtered = useMemo(
     () =>
       state.projects
         .filter(
           (item) =>
-            (status === "all" ||
-              (status === "open" &&
-                !["completed", "cancelled"].includes(item.status)) ||
-              item.status === status) &&
+            (status === "removed"
+              ? !!item.removedAt
+              : !item.removedAt &&
+                (status === "all" ||
+                  (status === "open" &&
+                    !["completed", "cancelled"].includes(item.status)) ||
+                  item.status === status)) &&
             (area === "all" || item.areaId === area) &&
             (priority === "all" || item.priority === priority) &&
             `${item.name} ${state.clients.find((client) => client.id === item.clientId)?.name ?? ""}`
@@ -108,6 +115,9 @@ export default function Projects({ open, today }: ViewProps) {
                 {label}
               </option>
             ))}
+            {removalReady && (
+              <option value="removed">Removidos ({removedCount})</option>
+            )}
           </select>
           <div className="segmented compact">
             <IconButton
@@ -135,7 +145,7 @@ export default function Projects({ open, today }: ViewProps) {
               setPage(1);
             }}
           >
-            Todas as frentes<small>{state.projects.length}</small>
+            Todas as frentes<small>{projectCount}</small>
           </button>
           {state.areas
             .filter((item) => !item.archived)
@@ -208,9 +218,15 @@ export default function Projects({ open, today }: ViewProps) {
                     </td>
                     <td>
                       <Badge
-                        tone={project.status === "active" ? "green" : "neutral"}
+                        tone={
+                          !project.removedAt && project.status === "active"
+                            ? "green"
+                            : "neutral"
+                        }
                       >
-                        {labels.project[project.status]}
+                        {project.removedAt
+                          ? "Removido"
+                          : labels.project[project.status]}
                       </Badge>
                     </td>
                     <td>
@@ -238,16 +254,20 @@ export default function Projects({ open, today }: ViewProps) {
           <EmptyState
             icon={FolderKanban}
             title={
-              state.projects.length
-                ? "Nenhum projeto com esses filtros."
-                : "Organize sua primeira entrega."
+              status === "removed" && !removedCount
+                ? "Nenhum projeto removido."
+                : projectCount
+                  ? "Nenhum projeto com esses filtros."
+                  : "Organize sua primeira entrega."
             }
             description={
-              state.projects.length
-                ? "Experimente outra busca ou mude os filtros."
-                : "Comece com o nome, o cliente e uma próxima ação concreta."
+              status === "removed" && !removedCount
+                ? "Os projetos removidos aparecem aqui e podem ser restaurados."
+                : projectCount
+                  ? "Experimente outra busca ou mude os filtros."
+                  : "Comece com o nome, o cliente e uma próxima ação concreta."
             }
-            action="Novo projeto"
+            action={status === "removed" ? undefined : "Novo projeto"}
             onAction={() => open({ kind: "project" })}
           />
         </div>

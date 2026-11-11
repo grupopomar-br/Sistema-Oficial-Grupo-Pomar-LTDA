@@ -45,6 +45,7 @@ export function weekPlan(
   for (const project of projects) {
     if (
       project.dueOn &&
+      !project.removedAt &&
       project.status !== "completed" &&
       project.status !== "cancelled"
     )

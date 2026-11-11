@@ -12,6 +12,8 @@ import {
   FileText,
   ImagePlus,
   Search,
+  Trash2,
+  RotateCcw,
 } from "lucide-react";
 import { useWorkspace } from "./workspace-provider";
 import {
@@ -53,7 +55,9 @@ export function EntityDetails({
     const client = state.clients.find((item) => item.id === modal.id);
     if (!client) return null;
     const projects = state.projects.filter(
-      (item) => item.clientId === client.id || item.contractorId === client.id,
+      (item) =>
+        !item.removedAt &&
+        (item.clientId === client.id || item.contractorId === client.id),
     );
     return (
       <Modal
@@ -211,14 +215,16 @@ export function EntityDetails({
         <div className="tag-row">
           <Badge
             tone={
-              project.status === "active"
-                ? "green"
-                : project.status === "waiting"
-                  ? "amber"
-                  : "neutral"
+              project.removedAt
+                ? "neutral"
+                : project.status === "active"
+                  ? "green"
+                  : project.status === "waiting"
+                    ? "amber"
+                    : "neutral"
             }
           >
-            {labels.project[project.status]}
+            {project.removedAt ? "Removido" : labels.project[project.status]}
           </Badge>
           <PriorityBadge value={project.priority} />
         </div>
@@ -230,10 +236,24 @@ export function EntityDetails({
               <ImagePlus size={15} /> Mídias VIP
             </Button>
           )}
-          <Button onClick={() => open({ kind: "project", id: project.id })}>
-            <Edit3 size={15} />
-            Editar
-          </Button>
+          {!project.removedAt && (
+            <Button onClick={() => open({ kind: "project", id: project.id })}>
+              <Edit3 size={15} /> Editar
+            </Button>
+          )}
+          {(mode === "local" || state.projectRemovalReady) && (
+            <Button
+              variant={project.removedAt ? "primary" : "ghost"}
+              onClick={() => open({ kind: "projectRemoval", id: project.id })}
+            >
+              {project.removedAt ? (
+                <RotateCcw size={15} />
+              ) : (
+                <Trash2 size={15} />
+              )}
+              {project.removedAt ? "Restaurar projeto" : "Remover projeto"}
+            </Button>
+          )}
         </div>
       </div>
       <div className="detail-metrics">
@@ -256,27 +276,33 @@ export function EntityDetails({
       <div className="progress-track">
         <span style={{ width: `${projectProgress(state, project.id)}%` }} />
       </div>
-      <p className="helper-text">{projectDurationLabel(project, today)}</p>
+      <p className="helper-text">
+        {project.removedAt
+          ? `Removido em ${fullDate(project.removedAt)}`
+          : projectDurationLabel(project, today)}
+      </p>
       {contractor && (
         <p className="helper-text">Contratante: {contractor.name}</p>
       )}
-      <div className="detail-next">
-        <span className="eyebrow">PRÓXIMA AÇÃO</span>
-        <h3>
-          {!["completed", "cancelled"].includes(project.status)
-            ? project.nextAction || "Definir o próximo passo."
-            : labels.project[project.status]}
-        </h3>
-        {project.nextActionOn && (
-          <span>
-            <Calendar size={14} />
-            {fullDate(project.nextActionOn)}
-          </span>
-        )}
-        {project.status === "waiting" && project.waitingFor && (
-          <p>Aguardando: {project.waitingFor}</p>
-        )}
-      </div>
+      {!project.removedAt && (
+        <div className="detail-next">
+          <span className="eyebrow">PRÓXIMA AÇÃO</span>
+          <h3>
+            {!["completed", "cancelled"].includes(project.status)
+              ? project.nextAction || "Definir o próximo passo."
+              : labels.project[project.status]}
+          </h3>
+          {project.nextActionOn && (
+            <span>
+              <Calendar size={14} />
+              {fullDate(project.nextActionOn)}
+            </span>
+          )}
+          {project.status === "waiting" && project.waitingFor && (
+            <p>Aguardando: {project.waitingFor}</p>
+          )}
+        </div>
+      )}
       {project.notes && (
         <div className="detail-note">
           <span className="eyebrow">ESCOPO E CONTEXTO</span>
@@ -285,13 +311,15 @@ export function EntityDetails({
       )}
       <div className="detail-section-heading">
         <h3>Execução</h3>
-        <Button
-          variant="ghost"
-          onClick={() => open({ kind: "task", projectId: project.id })}
-        >
-          <Plus size={15} />
-          Tarefa
-        </Button>
+        {!project.removedAt && (
+          <Button
+            variant="ghost"
+            onClick={() => open({ kind: "task", projectId: project.id })}
+          >
+            <Plus size={15} />
+            Tarefa
+          </Button>
+        )}
       </div>
       {tasks.length ? (
         <div className="detail-task-list">
@@ -334,13 +362,15 @@ export function EntityDetails({
       )}
       <div className="detail-section-heading">
         <h3>Contratos</h3>
-        <Button
-          variant="ghost"
-          onClick={() => open({ kind: "contract", projectId: project.id })}
-        >
-          <Plus size={15} />
-          Contrato
-        </Button>
+        {!project.removedAt && (
+          <Button
+            variant="ghost"
+            onClick={() => open({ kind: "contract", projectId: project.id })}
+          >
+            <Plus size={15} />
+            Contrato
+          </Button>
+        )}
       </div>
       {contracts.map((contract) => (
         <div className="related-project" key={contract.id}>
@@ -356,13 +386,15 @@ export function EntityDetails({
       )}
       <div className="detail-section-heading">
         <h3>Contexto e decisões</h3>
-        <Button
-          variant="ghost"
-          onClick={() => open({ kind: "note", projectId: project.id })}
-        >
-          <Plus size={15} />
-          Atualização
-        </Button>
+        {!project.removedAt && (
+          <Button
+            variant="ghost"
+            onClick={() => open({ kind: "note", projectId: project.id })}
+          >
+            <Plus size={15} />
+            Atualização
+          </Button>
+        )}
       </div>
       <div className="detail-history">
         {updates.map((entry) => (
@@ -412,7 +444,7 @@ export function GlobalSearch({
       );
   const results = [
     ...state.projects
-      .filter((item) => matches(item.name))
+      .filter((item) => !item.removedAt && matches(item.name))
       .map((item) => ({
         id: item.id,
         label: item.name,

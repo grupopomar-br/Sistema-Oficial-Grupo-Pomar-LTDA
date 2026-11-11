@@ -153,7 +153,8 @@ export default function ProjectMediaDialog({
           </div>
           {!canInvite && (
             <p className={styles.note}>
-              Vincule um cliente a um projeto ativo para emitir um convite.
+              A emissão de convites exige um projeto disponível e um cliente
+              vinculado.
             </p>
           )}
           {canInvite && (

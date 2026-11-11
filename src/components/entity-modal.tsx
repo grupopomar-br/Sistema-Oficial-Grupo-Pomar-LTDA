@@ -109,11 +109,14 @@ export default function EntityModal({
   const selectProjects = (selected: string | null) => (
     <select name="projectId" defaultValue={selected ?? ""}>
       <option value="">Sem projeto específico</option>
-      {state.projects.map((item) => (
-        <option key={item.id} value={item.id}>
-          {item.name}
-        </option>
-      ))}
+      {state.projects
+        .filter((item) => !item.removedAt || item.id === selected)
+        .map((item) => (
+          <option key={item.id} value={item.id}>
+            {item.name}
+            {item.removedAt ? " · removido" : ""}
+          </option>
+        ))}
     </select>
   );
   const priority = (selected = "P2") => (
@@ -129,6 +132,34 @@ export default function EntityModal({
       {children}
     </Modal>
   );
+
+  if (modal.kind === "projectRemoval") {
+    const project = initialState.projects.find((item) => item.id === modal.id);
+    if (!project) return null;
+    const remove = !project.removedAt;
+    const title = remove ? "Remover projeto" : "Restaurar projeto";
+    return content(
+      title,
+      <form
+        onSubmit={submit(() => ({
+          type: "setProjectRemoved",
+          id: project.id,
+          expectedVersion: project.version,
+          removed: remove,
+        }))}
+      >
+        <p
+          className={remove ? "inline-note inline-note-warning" : "inline-note"}
+        >
+          {remove
+            ? "O projeto vai para Removidos. A Central guarda os registros vinculados e revoga o convite ativo de mídias, se houver."
+            : "O projeto volta às listas conforme seu estado. Gere um novo convite em Mídias VIP se precisar receber arquivos."}
+        </p>
+        {footer(title, remove ? "danger" : "primary")}
+      </form>,
+      project.name,
+    );
+  }
 
   if (modal.kind === "client") {
     const termsReady = mode === "local" || initialState.clientTermsReady;
