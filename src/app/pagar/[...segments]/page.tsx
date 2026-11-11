@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import PaymentCheckout from "@/components/payment-checkout";
 import PaymentCheckoutLoading from "@/components/payment-checkout-loading";
 import { readPixCheckout } from "@/lib/server/pix-checkout";
-import { checkoutTokenPattern } from "@/lib/billing/pix-contract";
+import { parseCheckoutPath } from "@/lib/billing/checkout-link";
 export const metadata: Metadata = {
   title: "Pagamento | Grupo Pomar",
   description: "Confira e conclua seu pagamento ao Grupo Pomar.",
@@ -12,12 +12,13 @@ export const metadata: Metadata = {
 async function CheckoutContent({
   params,
 }: {
-  params: Promise<{ token: string }>;
+  params: Promise<{ segments: string[] }>;
 }) {
-  const { token } = await params;
+  const { segments } = await params;
+  const checkout = parseCheckoutPath(segments);
   let loadFailed = false;
-  const initial = checkoutTokenPattern.test(token)
-    ? await readPixCheckout(token).catch(() => {
+  const initial = checkout
+    ? await readPixCheckout(checkout.token).catch(() => {
         loadFailed = true;
         return null;
       })
@@ -26,11 +27,14 @@ async function CheckoutContent({
     <PaymentCheckout
       initial={initial}
       loadFailed={loadFailed}
-      token={checkoutTokenPattern.test(token) ? token : undefined}
+      token={checkout?.token}
+      clientSlug={checkout?.clientSlug}
     />
   );
 }
-export default function Page(props: { params: Promise<{ token: string }> }) {
+export default function Page(props: {
+  params: Promise<{ segments: string[] }>;
+}) {
   return (
     <Suspense fallback={<PaymentCheckoutLoading />}>
       <CheckoutContent {...props} />

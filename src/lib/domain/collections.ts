@@ -1,6 +1,7 @@
 import type { Workspace } from "./model.ts";
 import { installmentPaid, installmentRemaining } from "./workspace.ts";
 import { daysBetween, fullDate, money } from "./dates.ts";
+import { checkoutUrlForClient } from "../billing/safety.ts";
 export function collectionRows(state: Workspace, today: string) {
   const contracts = new Map(state.contracts.map((c) => [c.id, c]));
   const clients = new Map(state.clients.map((c) => [c.id, c]));
@@ -150,7 +151,7 @@ export function reminderDraft(
     charge.amountCents === row.remaining &&
     row.remaining > 0;
   const payment = ready
-    ? `\nPagamento pelo checkout oficial: ${charge.checkoutUrl}\nEste link é válido até ${new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short", timeZone: "America/Fortaleza" }).format(new Date(charge.expiresAt))}.`
+    ? `\nPagamento pelo checkout oficial: ${checkoutUrlForClient(charge.checkoutUrl, row.client)}\nEste link é válido até ${new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short", timeZone: "America/Fortaleza" }).format(new Date(charge.expiresAt))}.`
     : "\nPodemos confirmar a forma de pagamento e a previsão de regularização?";
   const condition =
     row.agreement?.acceptedOn && row.agreement.gate !== "none"

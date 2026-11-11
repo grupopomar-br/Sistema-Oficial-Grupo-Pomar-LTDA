@@ -10,6 +10,7 @@ import { requireOrigin, AccessError } from "@/lib/server/access";
 import { ProviderError } from "@/lib/billing/mercadopago";
 import { providerErrorDetails } from "@/lib/billing/provider-diagnostics";
 import { boundedJson, json } from "@/lib/server/http";
+import { checkoutSlugPattern } from "@/lib/billing/checkout-link";
 import {
   checkoutTokenPattern,
   pixPayerSchema,
@@ -19,7 +20,10 @@ type Context = { params: Promise<{ token: string }> };
 const input = z.discriminatedUnion("action", [
   z.strictObject({ action: z.literal("generate"), payer: pixPayerSchema }),
   z.strictObject({ action: z.literal("refresh") }),
-  z.strictObject({ action: z.literal("card") }),
+  z.strictObject({
+    action: z.literal("card"),
+    clientSlug: z.string().regex(checkoutSlugPattern).optional(),
+  }),
 ]);
 const unavailable = () =>
   json({ error: "Este link de pagamento não está disponível." }, 404);
@@ -48,7 +52,7 @@ export async function POST(request: Request, context: Context) {
     const data = input.parse(await boundedJson(request, 4096));
     const checkout =
       data.action === "card"
-        ? await generateCard(config, token)
+        ? await generateCard(config, token, data.clientSlug)
         : data.action === "generate"
           ? await generatePix(config, token, data.payer)
           : await refreshPix(config, token);

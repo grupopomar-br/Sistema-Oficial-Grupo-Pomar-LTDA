@@ -1,5 +1,9 @@
 import type { BillingConfig } from "../config/billing.ts";
-import { checkoutTokenPattern } from "./pix-contract.ts";
+import {
+  checkoutPath,
+  checkoutSlugPattern,
+  checkoutTokenPattern,
+} from "./checkout-link.ts";
 import { decimalCents, isSafeCheckoutUrl } from "./safety.ts";
 import {
   ProviderError,
@@ -27,12 +31,14 @@ const failure = () =>
   );
 export async function createCardPreference(
   config: BillingConfig,
-  charge: PreparedCharge,
+  charge: PreparedCharge & { clientSlug?: string },
   token: string,
   fetcher: typeof fetch = fetch,
 ) {
   if (
     !checkoutTokenPattern.test(token) ||
+    (charge.clientSlug !== undefined &&
+      !checkoutSlugPattern.test(charge.clientSlug)) ||
     charge.mode !== config.mode ||
     !Number.isSafeInteger(charge.amountCents) ||
     charge.amountCents <= 0 ||
@@ -70,7 +76,10 @@ export async function createCardPreference(
         ),
     ),
   ];
-  const callback = new URL(`/pagar/${token}`, config.appUrl).toString();
+  const callback = new URL(
+    checkoutPath(token, charge.clientSlug),
+    config.appUrl,
+  ).toString();
   const raw = await providerRequest(
     config,
     "/checkout/preferences",

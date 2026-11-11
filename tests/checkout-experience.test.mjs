@@ -2,11 +2,13 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { isPublicPaymentRoute } from "../src/lib/config/public-payment-routes.ts";
 import { watchCheckoutPayment } from "../src/lib/billing/checkout-polling.ts";
+import { checkoutUrlForClient } from "../src/lib/billing/safety.ts";
 
 test("dispensa renovação de sessão apenas nas rotas públicas de pagamento, sem ampliar para APIs do proprietário", () => {
   const token = "A".repeat(43);
   for (const path of [
     `/pagar/${token}`,
+    `/pagar/cliente-exemplo/${token}`,
     `/api/checkout/${token}`,
     "/pagamento/visualizar",
     "/pagamento/retorno",
@@ -26,6 +28,10 @@ test("dispensa renovação de sessão apenas nas rotas públicas de pagamento, s
     "/api/session",
     "/api/checkout",
     `/api/checkout/${token}/extra`,
+    `/api/checkout/cliente-exemplo/${token}`,
+    `/pagar/cliente%2Fexemplo/${token}`,
+    `/pagar/cliente-exemplo/${token}/extra`,
+    `/pagar/${"a".repeat(49)}/${token}`,
     `/pagar/${token}/central`,
     `/pagar/${token}%2fcentral`,
     "/pagamento/visualizar/central",
@@ -33,6 +39,27 @@ test("dispensa renovação de sessão apenas nas rotas públicas de pagamento, s
     `/pagar/${"A".repeat(44)}`,
   ])
     assert.equal(isPublicPaymentRoute(path), false, path);
+});
+
+test("links do checkout usam nome comercial ou primeiro nome e mantêm a chave privada", () => {
+  const token = "A".repeat(43);
+  const url = `https://central.example.com/pagar/${token}`;
+  assert.equal(
+    checkoutUrlForClient(url, {
+      name: "Loja São João Ltda.",
+      kind: "business",
+    }),
+    `https://central.example.com/pagar/loja-sao-joao-ltda/${token}`,
+  );
+  assert.equal(
+    checkoutUrlForClient(url, { name: "Álvaro da Silva", kind: "person" }),
+    `https://central.example.com/pagar/alvaro/${token}`,
+  );
+  assert.equal(
+    checkoutUrlForClient(url, { name: "東京", kind: "business" }),
+    url,
+  );
+  assert.equal(checkoutUrlForClient(url), url);
 });
 
 class Page extends EventTarget {

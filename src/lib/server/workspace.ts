@@ -29,6 +29,10 @@ export function databaseFailure(error: {
       "Este recebimento é confirmado pelo provedor. Faça a devolução no provedor e concilie o evento.",
     POMAR_ACTIVE_CHARGE:
       "Já existe uma cobrança em andamento para esta parcela. Confira o link e a validade.",
+    POMAR_TEST_PAYMENT_EXISTS:
+      "Há um recebimento ou pagamento real vinculado. Confira os Recebimentos e a conciliação antes de remover o teste.",
+    POMAR_TEST_CHECKOUT_IN_PROGRESS:
+      "Já foi iniciado um Pix ou cartão em produção. Confira a cobrança no Mercado Pago e aguarde a expiração para remover o teste.",
     POMAR_BILLING_DISABLED:
       "A integração do banco para cobrança ainda não foi habilitada.",
     POMAR_RECENT_MFA:

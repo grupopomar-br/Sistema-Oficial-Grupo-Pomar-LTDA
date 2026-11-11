@@ -1,3 +1,5 @@
+import { checkoutPath, checkoutTokenPattern } from "./checkout-link.ts";
+
 export function isSafeCheckoutUrl(value: string): boolean {
   try {
     const u = new URL(value);
@@ -45,10 +47,31 @@ export function isSafePomarCheckoutUrl(
       !u.port &&
       !u.search &&
       !u.hash &&
-      /^\/pagar\/[A-Za-z0-9_-]{43}$/.test(u.pathname) &&
+      u.pathname.startsWith("/pagar/") &&
+      checkoutTokenPattern.test(u.pathname.slice("/pagar/".length)) &&
       (!origin || u.origin === new URL(origin).origin)
     );
   } catch {
     return false;
   }
+}
+export function checkoutUrlForClient(
+  value: string,
+  client?: { name: string; kind: "business" | "person" },
+): string {
+  if (!client || !isSafePomarCheckoutUrl(value)) return value;
+  const name =
+    client.kind === "person" ? client.name.trim().split(/\s+/)[0] : client.name;
+  const slug = name
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-/, "")
+    .slice(0, 48)
+    .replace(/-$/, "");
+  if (!slug) return value;
+  const url = new URL(value);
+  url.pathname = checkoutPath(url.pathname.slice("/pagar/".length), slug);
+  return url.toString();
 }

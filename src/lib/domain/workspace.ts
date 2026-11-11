@@ -754,26 +754,49 @@ export function applyCommand(
       );
       break;
     }
-    case "cancelContract": {
+    case "cancelContract":
+    case "removeTestContract": {
       const contract = state.contracts.find((item) => item.id === command.id);
       required(contract, "Contrato não encontrado.");
       if (contract.status === "cancelled") return current;
+      const installments = state.installments.filter(
+        (item) => item.contractId === contract.id,
+      );
+      if (command.type === "removeTestContract") {
+        required(
+          !state.receipts.some(
+            (item) =>
+              item.contractId === contract.id && item.status === "confirmed",
+          ),
+          "Este lançamento tem recebimento confirmado. Confira em Recebimentos.",
+        );
+        required(
+          !state.charges.some(
+            (charge) =>
+              charge.mode === "live" &&
+              installments.some((item) => item.id === charge.installmentId),
+          ),
+          "Confira as cobranças de produção pela Central conectada.",
+        );
+      }
+      const reason =
+        command.type === "removeTestContract"
+          ? "Lançamento removido por ser um teste."
+          : command.reason;
       save(state.contracts, {
         ...contract,
         status: "cancelled",
-        notes: `${contract.notes}\nCancelamento: ${command.reason}`
+        notes: `${contract.notes}\nCancelamento: ${reason}`
           .trim()
           .slice(0, 5000),
       });
-      for (const installment of [
-        ...state.installments.filter((item) => item.contractId === contract.id),
-      ])
+      for (const installment of installments)
         save(state.installments, { ...installment, status: "cancelled" });
       log(
         "contract",
         contract.id,
         "cancel",
-        `Contrato cancelado; recebimentos preservados. Motivo: ${command.reason}`,
+        `Contrato cancelado; recebimentos preservados. Motivo: ${reason}`,
       );
       break;
     }
