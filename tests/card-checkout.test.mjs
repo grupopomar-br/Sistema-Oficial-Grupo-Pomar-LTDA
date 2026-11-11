@@ -66,6 +66,7 @@ test("cartão começa desligado e requer confirmação específica em produção
 });
 test("preferência usa o valor armazenado, limita a 12 parcelas e valida conta, aplicação, moeda, validade e retorno", async () => {
   let posts = 0;
+  let returnUrls;
   const fetcher =
     (tamper = {}) =>
     async (url, options) => {
@@ -85,6 +86,7 @@ test("preferência usa o valor armazenado, limita a 12 parcelas e valida conta, 
       assert.equal(options.method, "POST");
       posts++;
       const body = JSON.parse(options.body);
+      returnUrls = body.back_urls;
       assert.equal(body.items[0].unit_price, 1200);
       assert.equal(body.payment_methods.installments, 12);
       assert.equal(
@@ -110,6 +112,21 @@ test("preferência usa o valor armazenado, limita a 12 parcelas e valida conta, 
     };
   const result = await createCardPreference(config, charge, token, fetcher());
   assert.equal(result.maxInstallments, 12);
+  await createCardPreference(
+    config,
+    { ...charge, clientSlug: "cliente-exemplo" },
+    token,
+    fetcher(),
+  );
+  const namedReturn = new URL(
+    `/pagar/cliente-exemplo/${token}`,
+    config.appUrl,
+  ).toString();
+  assert.deepEqual(returnUrls, {
+    success: namedReturn,
+    pending: namedReturn,
+    failure: namedReturn,
+  });
   for (const tamper of [
     { collector_id: "1" },
     { client_id: "1" },

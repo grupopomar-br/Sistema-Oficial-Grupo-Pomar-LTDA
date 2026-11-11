@@ -71,7 +71,10 @@ export default function EntityModal({
         );
       }
     };
-  const footer = (label = "Salvar") => (
+  const footer = (
+    label = "Salvar",
+    variant: "primary" | "danger" = "primary",
+  ) => (
     <div className="form-footer">
       {(error || operationError) && (
         <p className="form-error" role="alert">
@@ -79,7 +82,7 @@ export default function EntityModal({
         </p>
       )}
       <Button onClick={onClose}>Cancelar</Button>
-      <Button variant="primary" type="submit" disabled={saving}>
+      <Button variant={variant} type="submit" disabled={saving}>
         {saving ? <Loader2 size={16} className="spin" /> : <Check size={16} />}{" "}
         {label}
       </Button>
@@ -932,6 +935,21 @@ export default function EntityModal({
         </Field>
         {footer("Confirmar data")}
       </form>,
+    );
+  if (modal.kind === "removeTestContract")
+    return content(
+      "Remover cobrança de teste",
+      <form
+        onSubmit={submit(() => ({ type: "removeTestContract", id: modal.id }))}
+      >
+        <p className="inline-note inline-note-warning">
+          Confirme se o contrato inteiro foi criado para teste. O contrato será
+          cancelado e todas as suas parcelas sairão dos valores a receber e do
+          total contratado.
+        </p>
+        {footer("Remover teste", "danger")}
+      </form>,
+      initialState.contracts.find((item) => item.id === modal.id)?.title,
     );
   if (modal.kind === "voidReceipt" || modal.kind === "cancelContract")
     return content(

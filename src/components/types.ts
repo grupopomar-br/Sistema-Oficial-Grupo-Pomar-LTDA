@@ -30,6 +30,7 @@ export type ModalState =
   | { kind: "dateReceipt"; id: string }
   | { kind: "voidReceipt"; id: string }
   | { kind: "cancelContract"; id: string }
+  | { kind: "removeTestContract"; id: string }
   | { kind: "note"; projectId: string }
   | { kind: "convert"; id: string }
   | { kind: "projectDetail"; id: string }

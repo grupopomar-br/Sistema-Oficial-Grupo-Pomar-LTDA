@@ -109,7 +109,11 @@ export async function generatePix(
   }
   return publicView(await read(config, token), config);
 }
-export async function generateCard(config: BillingConfig, token: string) {
+export async function generateCard(
+  config: BillingConfig,
+  token: string,
+  clientSlug?: string,
+) {
   if (
     !checkoutTokenPattern.test(token) ||
     !cardCheckoutEnabled(process.env, config.mode)
@@ -129,6 +133,7 @@ export async function generateCard(config: BillingConfig, token: string) {
         amountCents: Number(row.amount_cents),
         expiresAt: row.expires_at,
         mode: row.mode,
+        clientSlug,
       },
       token,
     );

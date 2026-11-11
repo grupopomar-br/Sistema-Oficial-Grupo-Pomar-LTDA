@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const checkoutTokenPattern = /^[A-Za-z0-9_-]{43}$/;
+export { checkoutTokenPattern } from "./checkout-link.ts";
 
 export function validTaxId(input: string): boolean {
   const s = input.replace(/[.\-/\s]/g, "");

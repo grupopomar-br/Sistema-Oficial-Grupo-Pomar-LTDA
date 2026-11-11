@@ -13,6 +13,7 @@ import {
   Check,
   Receipt,
   CircleDollarSign,
+  Trash2,
 } from "lucide-react";
 import { useWorkspace } from "../workspace-provider";
 import {
@@ -89,6 +90,14 @@ export default function Finance({
     .sort((a, b) => (a.dueOn ?? "9999").localeCompare(b.dueOn ?? "9999"));
   const contractName = (id: string) =>
     state.contracts.find((item) => item.id === id)?.title ?? "Contrato";
+  const removeTest = (contractId: string) => (
+    <Button
+      variant="ghost"
+      onClick={() => open({ kind: "removeTestContract", id: contractId })}
+    >
+      <Trash2 size={14} /> Remover teste
+    </Button>
+  );
   const clientName = (contractId: string) =>
     state.clients.find(
       (item) =>
@@ -283,13 +292,16 @@ export default function Finance({
                       <strong>
                         {format(installmentRemaining(state, item.id))}
                       </strong>
-                      <Button
-                        onClick={() =>
-                          open({ kind: "receipt", installmentId: item.id })
-                        }
-                      >
-                        Registrar
-                      </Button>
+                      <div className="button-group receivable-actions">
+                        <Button
+                          onClick={() =>
+                            open({ kind: "receipt", installmentId: item.id })
+                          }
+                        >
+                          Registrar
+                        </Button>
+                        {removeTest(item.contractId)}
+                      </div>
                     </div>
                   ))}
               </div>
@@ -500,17 +512,20 @@ export default function Finance({
                             </strong>
                           </td>
                           <td>
-                            <Button
-                              onClick={() =>
-                                open({
-                                  kind: "receipt",
-                                  installmentId: item.id,
-                                })
-                              }
-                            >
-                              <Check size={14} />
-                              Receber
-                            </Button>
+                            <div className="button-group">
+                              <Button
+                                onClick={() =>
+                                  open({
+                                    kind: "receipt",
+                                    installmentId: item.id,
+                                  })
+                                }
+                              >
+                                <Check size={14} />
+                                Receber
+                              </Button>
+                              {removeTest(item.contractId)}
+                            </div>
                           </td>
                         </tr>
                       ))}

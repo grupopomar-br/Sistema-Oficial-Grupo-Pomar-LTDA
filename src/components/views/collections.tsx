@@ -12,6 +12,7 @@ import {
   Play,
   Plus,
   ShieldCheck,
+  Trash2,
   Wallet,
 } from "lucide-react";
 import { useWorkspace } from "../workspace-provider";
@@ -35,6 +36,7 @@ import { newBase } from "@/lib/domain/model";
 import { parseWorkspace } from "@/lib/domain/workspace";
 import { money, fullDate, todayDate } from "@/lib/domain/dates";
 import { parseBRL } from "@/lib/domain/finance";
+import { checkoutUrlForClient } from "@/lib/billing/safety";
 import type { CollectionAgreement } from "@/lib/domain/extensions";
 type Row = ReturnType<typeof collectionSummary>["rows"][number];
 type Dialog = {
@@ -478,7 +480,10 @@ export default function Collections(props: ViewProps) {
                       )}
                       {validLink ? (
                         <a
-                          href={link.checkoutUrl}
+                          href={checkoutUrlForClient(
+                            link.checkoutUrl,
+                            row.client,
+                          )}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="button button-primary"
@@ -500,6 +505,17 @@ export default function Collections(props: ViewProps) {
                       )}
                     </>
                   )}
+                  <Button
+                    variant="ghost"
+                    onClick={() =>
+                      props.open({
+                        kind: "removeTestContract",
+                        id: row.contract.id,
+                      })
+                    }
+                  >
+                    <Trash2 size={15} /> Remover teste
+                  </Button>
                 </div>
               </article>
             );

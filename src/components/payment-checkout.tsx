@@ -49,11 +49,13 @@ const date = (value: string) =>
 export default function PaymentCheckout({
   initial,
   token,
+  clientSlug,
   preview = false,
   loadFailed = false,
 }: {
   initial: PixCheckout | null;
   token?: string;
+  clientSlug?: string;
   preview?: boolean;
   loadFailed?: boolean;
 }) {
@@ -178,7 +180,7 @@ export default function PaymentCheckout({
     }
   }
   async function startCard() {
-    const next = await request({ action: "card" });
+    const next = await request({ action: "card", clientSlug });
     if (next?.cardUrl && isSafeCheckoutUrl(next.cardUrl))
       window.location.assign(next.cardUrl);
   }

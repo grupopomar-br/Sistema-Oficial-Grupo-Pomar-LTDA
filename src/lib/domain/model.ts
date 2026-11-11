@@ -288,6 +288,7 @@ export const commandSchema = z.discriminatedUnion("type", [
     id,
     reason: text(1000).min(5),
   }),
+  z.strictObject({ type: z.literal("removeTestContract"), id }),
   z.strictObject({
     type: z.literal("addUpdate"),
     projectId: id,

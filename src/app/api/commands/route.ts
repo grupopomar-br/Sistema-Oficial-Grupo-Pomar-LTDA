@@ -1,5 +1,9 @@
 import { parseEnvironment } from "@/lib/config/environment";
-import { authorizedOwner, requireOrigin } from "@/lib/server/access";
+import {
+  AccessError,
+  authorizedOwner,
+  requireOrigin,
+} from "@/lib/server/access";
 import {
   databaseCommand,
   databaseFailure,
@@ -16,10 +20,21 @@ export async function POST(request: Request) {
     const { commandId, command } = envelopeSchema.parse(
       await boundedJson(request),
     );
-    const { error } = await supabase.rpc("pomar_command", {
-      p_key: commandId,
-      p_command: databaseCommand(command),
-    });
+    const { error } =
+      command.type === "removeTestContract"
+        ? await supabase.rpc("pomar_remove_test_contract", {
+            p_key: commandId,
+            p_id: command.id,
+          })
+        : await supabase.rpc("pomar_command", {
+            p_key: commandId,
+            p_command: databaseCommand(command),
+          });
+    if (command.type === "removeTestContract" && error?.code === "PGRST202")
+      throw new AccessError(
+        "A remoção de cobranças de teste precisa ser ativada no Supabase.",
+        503,
+      );
     if (error) throw databaseFailure(error);
     // A retry keeps commandId, so a successful commit followed by a lost response cannot double a payment.
     return json({ workspace: await readWorkspace(supabase) });

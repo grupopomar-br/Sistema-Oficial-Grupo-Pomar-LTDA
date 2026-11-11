@@ -131,15 +131,18 @@ try {
     preview.headers.get("content-security-policy").includes("'strict-dynamic'"),
   );
   const checkoutToken = "A".repeat(43);
-  const checkout = await fetch(
-    origin + "/pagar/" + checkoutToken + "?status=approved",
-  );
-  assert.equal(checkout.status, 200);
-  const checkoutHtml = await checkout.text();
-  assert.ok(checkoutHtml.includes("Estamos abrindo seu pagamento."));
-  assert.ok(checkoutHtml.includes("Este link não está disponível."));
-  assert.ok(!checkoutHtml.includes("Pagamento confirmado!"));
-  assert.equal(checkout.headers.get("referrer-policy"), "no-referrer");
+  for (const path of [
+    `/pagar/${checkoutToken}`,
+    `/pagar/cliente-exemplo/${checkoutToken}`,
+  ]) {
+    const checkout = await fetch(origin + path + "?status=approved");
+    assert.equal(checkout.status, 200);
+    const checkoutHtml = await checkout.text();
+    assert.ok(checkoutHtml.includes("Estamos abrindo seu pagamento."));
+    assert.ok(checkoutHtml.includes("Este link não está disponível."));
+    assert.ok(!checkoutHtml.includes("Pagamento confirmado!"));
+    assert.equal(checkout.headers.get("referrer-policy"), "no-referrer");
+  }
   for (const method of ["GET", "POST"]) {
     const response = await fetch(origin + "/api/checkout/" + checkoutToken, {
       method,
