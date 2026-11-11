@@ -21,6 +21,7 @@ export type ModalState =
   | { kind: "idea"; id?: string }
   | { kind: "client"; id?: string; termAction?: "edit" | "extend" }
   | { kind: "project"; id?: string }
+  | { kind: "projectRemoval"; id: string }
   | { kind: "task"; id?: string; projectId?: string; focusOn?: string }
   | { kind: "meeting"; id?: string; day?: string }
   | { kind: "contract"; projectId?: string }

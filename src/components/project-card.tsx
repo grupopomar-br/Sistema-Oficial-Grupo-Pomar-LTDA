@@ -27,6 +27,10 @@ export function ProjectCard({
   const done = tasks.filter((item) => item.status === "done").length;
   const progress = projectProgress(state, project.id);
   const remaining = project.dueOn ? daysBetween(today, project.dueOn) : null;
+  const active = isActiveProject(project);
+  const statusLabel = project.removedAt
+    ? "Removido"
+    : labels.project[project.status];
   return (
     <button type="button" className="project-card" onClick={onOpen}>
       <div className="project-card-top">
@@ -43,14 +47,16 @@ export function ProjectCard({
       <div className="tag-row">
         <Badge
           tone={
-            project.status === "active" || project.status === "completed"
-              ? "green"
-              : project.status === "waiting"
-                ? "amber"
-                : "neutral"
+            project.removedAt
+              ? "neutral"
+              : project.status === "active" || project.status === "completed"
+                ? "green"
+                : project.status === "waiting"
+                  ? "amber"
+                  : "neutral"
           }
         >
-          {labels.project[project.status]}
+          {statusLabel}
         </Badge>
         <Badge tone={area?.color}>{area?.name ?? "Área"}</Badge>
       </div>
@@ -65,28 +71,32 @@ export function ProjectCard({
           <span style={{ width: `${progress}%` }} />
         </div>
       </div>
-      <div className="project-next">
-        <span className="eyebrow">
-          {isActiveProject(project) ? "PRÓXIMA AÇÃO" : "ESTADO DO PROJETO"}
-        </span>
-        <p>
-          {isActiveProject(project)
-            ? project.nextAction || "Definir a próxima ação."
-            : labels.project[project.status]}
-        </p>
-      </div>
-      <p className="project-duration">{projectDurationLabel(project, today)}</p>
+      {!project.removedAt && (
+        <div className="project-next">
+          <span className="eyebrow">
+            {active ? "PRÓXIMA AÇÃO" : "ESTADO DO PROJETO"}
+          </span>
+          <p>
+            {active
+              ? project.nextAction || "Definir a próxima ação."
+              : statusLabel}
+          </p>
+        </div>
+      )}
+      <p className="project-duration">
+        {project.removedAt
+          ? `Removido em ${shortDate(project.removedAt)}`
+          : projectDurationLabel(project, today)}
+      </p>
       <div className="project-card-footer">
         <span
           className={
-            remaining !== null && remaining < 0 && isActiveProject(project)
-              ? "text-danger"
-              : ""
+            remaining !== null && remaining < 0 && active ? "text-danger" : ""
           }
         >
           <Calendar size={14} />
           {project.dueOn
-            ? `${shortDate(project.dueOn)}${isActiveProject(project) && remaining !== null && remaining < 0 ? " · em atraso" : ""}`
+            ? `${shortDate(project.dueOn)}${active && remaining !== null && remaining < 0 ? " · em atraso" : ""}`
             : "Prazo a definir"}
         </span>
         <ArrowUpRight size={17} />

@@ -4,6 +4,7 @@ import { installmentRemaining } from "./workspace.ts";
 import { cashMovement } from "./cash-movement.ts";
 
 export const isActiveProject = (project: Project) =>
+  !project.removedAt &&
   ["planning", "active", "waiting", "paused"].includes(project.status);
 export const priorityScore = (priority: Priority) =>
   ({ P0: 0, P1: 1, P2: 2, P3: 3 })[priority];

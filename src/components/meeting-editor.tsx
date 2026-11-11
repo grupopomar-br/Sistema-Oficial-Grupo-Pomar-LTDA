@@ -122,11 +122,14 @@ export default function MeetingEditor({
           <Field label="Projeto">
             <select name="projectId" defaultValue={editing.projectId ?? ""}>
               <option value="">Sem vínculo</option>
-              {state.projects.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
+              {state.projects
+                .filter((p) => !p.removedAt || p.id === editing.projectId)
+                .map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                    {p.removedAt ? " · removido" : ""}
+                  </option>
+                ))}
             </select>
           </Field>
           <Field label="Lembrete">

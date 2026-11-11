@@ -486,7 +486,9 @@ function Shell({ initialView = "overview" }: { initialView?: View }) {
             projectId={mediaProject.id}
             projectName={mediaProject.name}
             canInvite={
-              !!mediaProject.clientId && mediaProject.status !== "cancelled"
+              !mediaProject.removedAt &&
+              !!mediaProject.clientId &&
+              mediaProject.status !== "cancelled"
             }
             onClose={() =>
               setModal({ kind: "projectDetail", id: mediaProject.id })

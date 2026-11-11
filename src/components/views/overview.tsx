@@ -77,7 +77,7 @@ export default function Overview(props: ViewProps) {
         <StatCard
           title="Projetos em movimento"
           value={active.length}
-          detail={`${state.projects.filter((item) => item.status === "waiting").length} aguardando terceiros`}
+          detail={`${active.filter((item) => item.status === "waiting").length} aguardando terceiros`}
           icon={FolderKanban}
           accent
           onClick={() => navigate("projects")}

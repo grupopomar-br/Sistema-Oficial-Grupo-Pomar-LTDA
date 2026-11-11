@@ -1,5 +1,6 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { z } from "zod";
 import { parseWorkspace } from "../domain/workspace";
 import { camelize } from "../domain/transport";
 import { fetchWorkspaceSnapshot } from "../domain/workspace-snapshot";
@@ -45,6 +46,8 @@ export function databaseFailure(error: {
     POMAR_NOT_ACTIVE:
       "O contrato, a parcela ou a oportunidade não está disponível para esta ação.",
     POMAR_NOT_FOUND: "O registro não foi encontrado. Atualize os dados.",
+    POMAR_PROJECT_REMOVED:
+      "Restaure o projeto antes de gerar um convite de mídias.",
     POMAR_ALREADY_DATED:
       "O recebimento já tem uma data ou foi estornado. Atualize os dados.",
     POMAR_FUTURE_EXPENSE: "A data do pagamento não pode estar no futuro.",
@@ -89,9 +92,23 @@ export function databaseFailure(error: {
   );
 }
 export async function readWorkspace(supabase: SupabaseClient) {
-  const { data, error } = await fetchWorkspaceSnapshot((name) =>
-    supabase.rpc(name),
-  );
+  const [{ data, error }, removals] = await Promise.all([
+    fetchWorkspaceSnapshot((name) => supabase.rpc(name)),
+    supabase.rpc("pomar_project_removal_dates"),
+  ]);
   if (error) throw databaseFailure(error);
-  return parseWorkspace(camelize(data));
+  const workspace = parseWorkspace(camelize(data));
+  if (removals.error?.code === "PGRST202") return workspace;
+  if (removals.error) throw databaseFailure(removals.error);
+  const dates = z
+    .record(z.uuid(), z.iso.datetime({ offset: true }))
+    .parse(removals.data);
+  return {
+    ...workspace,
+    projectRemovalReady: true,
+    projects: workspace.projects.map((project) => ({
+      ...project,
+      removedAt: dates[project.id],
+    })),
+  };
 }

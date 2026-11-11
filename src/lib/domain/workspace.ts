@@ -516,6 +516,7 @@ export function applyCommand(
       break;
     case "saveProject":
       const before = state.projects.find((p) => p.id === command.value.id);
+      required(!before?.removedAt, "Restaure o projeto para editá-lo.");
       if (
         before?.status !== command.value.status &&
         ["active", "completed"].includes(command.value.status)
@@ -543,6 +544,7 @@ export function applyCommand(
       }
       save(state.projects, {
         ...command.value,
+        removedAt: undefined,
         completedOn:
           command.value.status === "completed"
             ? before?.status === "completed"
@@ -557,6 +559,27 @@ export function applyCommand(
         `Projeto atualizado: ${command.value.name}`,
       );
       break;
+    case "setProjectRemoved": {
+      const project = state.projects.find((item) => item.id === command.id);
+      required(project, "Projeto não encontrado.");
+      if (project.version !== command.expectedVersion)
+        throw new BusinessError(
+          "Este projeto mudou. Atualize a ficha antes de continuar.",
+          "CONFLICT",
+        );
+      if (Boolean(project.removedAt) === command.removed) return current;
+      save(state.projects, {
+        ...project,
+        removedAt: command.removed ? now : undefined,
+      });
+      log(
+        "project",
+        project.id,
+        command.removed ? "remove" : "restore",
+        `${command.removed ? "Projeto removido" : "Projeto restaurado"}: ${project.name}`,
+      );
+      break;
+    }
     case "saveTask": {
       const value = {
         ...command.value,
