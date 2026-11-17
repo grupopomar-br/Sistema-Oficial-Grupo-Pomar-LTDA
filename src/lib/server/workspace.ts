@@ -48,6 +48,9 @@ export function databaseFailure(error: {
     POMAR_NOT_FOUND: "O registro não foi encontrado. Atualize os dados.",
     POMAR_PROJECT_REMOVED:
       "Restaure o projeto antes de gerar um convite de mídias.",
+    POMAR_UPDATE_REMOVED:
+      "Restaure o projeto antes de registrar uma atualização.",
+    POMAR_UPDATE_CLOSED: "Abra o projeto novamente para registrar um avanço.",
     POMAR_ALREADY_DATED:
       "O recebimento já tem uma data ou foi estornado. Atualize os dados.",
     POMAR_FUTURE_EXPENSE: "A data do pagamento não pode estar no futuro.",
@@ -92,6 +95,11 @@ export function databaseFailure(error: {
   );
 }
 export async function readWorkspace(supabase: SupabaseClient) {
+  const snapshot = await supabase.rpc("pomar_workspace_project_updates");
+  if (snapshot.error?.code !== "PGRST202") {
+    if (snapshot.error) throw databaseFailure(snapshot.error);
+    return parseWorkspace(camelize(snapshot.data));
+  }
   const [{ data, error }, removals] = await Promise.all([
     fetchWorkspaceSnapshot((name) => supabase.rpc(name)),
     supabase.rpc("pomar_project_removal_dates"),

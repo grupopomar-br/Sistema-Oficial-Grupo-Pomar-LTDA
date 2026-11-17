@@ -188,6 +188,7 @@ export const updateSchema = z.strictObject({
   ...base,
   projectId: id,
   message: text(5000).min(3),
+  progressPercent: z.number().int().min(0).max(100).optional(),
 });
 export const auditSchema = z.strictObject({
   id,
@@ -214,6 +215,7 @@ export const workspaceSchema = z.strictObject({
   collectionQueueReady: z.boolean().default(false),
   expensePurposesReady: z.boolean().default(false),
   projectRemovalReady: z.boolean().default(false),
+  projectUpdatesReady: z.boolean().default(false),
   googleResults: z.array(googleResultSchema).max(10000).default([]),
   meetings: z.array(meetingSchema).max(10000).default([]),
   settings: settingsSchema,
@@ -302,6 +304,19 @@ export const commandSchema = z.discriminatedUnion("type", [
     projectId: id,
     message: text(5000).min(3),
   }),
+  z
+    .strictObject({
+      type: z.literal("recordProjectUpdate"),
+      projectId: id,
+      expectedVersion: z.number().int().positive(),
+      message: text(5000).min(3),
+      progressPercent: z.number().int().min(0).max(100).nullable(),
+      nextAction: text(1000),
+      nextActionOn: date.nullable(),
+    })
+    .refine(({ nextAction, nextActionOn }) => !nextActionOn || !!nextAction, {
+      message: "Informe a próxima ação para definir a data.",
+    }),
   z.strictObject({
     type: z.literal("convertOpportunity"),
     id,
@@ -346,6 +361,7 @@ export function emptyWorkspace(now = new Date().toISOString()): Workspace {
     collectionQueueReady: true,
     expensePurposesReady: true,
     projectRemovalReady: true,
+    projectUpdatesReady: true,
     googleResults: [],
     meetings: [],
     profile: { avatarPath: "", version: 0 },

@@ -22,6 +22,8 @@ import { ProjectCard } from "../project-card";
 import type { ViewProps } from "../types";
 import { labels } from "@/lib/domain/model";
 import { shortDate } from "@/lib/domain/dates";
+import { projectProgress } from "@/lib/domain/project-progress";
+import { ProjectMeter, updateCountLabel } from "../project-meter";
 
 export default function Projects({ open, today }: ViewProps) {
   const { state, mode } = useWorkspace();
@@ -32,6 +34,10 @@ export default function Projects({ open, today }: ViewProps) {
   const [layout, setLayout] = useState("grid");
   const [page, setPage] = useState(1);
   const removalReady = mode === "local" || state.projectRemovalReady;
+  const clients = useMemo(
+    () => new Map(state.clients.map(({ id, name }) => [id, name])),
+    [state.clients],
+  );
   const removedCount = state.projects.filter((item) => item.removedAt).length;
   const projectCount =
     status === "removed" ? removedCount : state.projects.length - removedCount;
@@ -49,7 +55,7 @@ export default function Projects({ open, today }: ViewProps) {
                   item.status === status)) &&
             (area === "all" || item.areaId === area) &&
             (priority === "all" || item.priority === priority) &&
-            `${item.name} ${state.clients.find((client) => client.id === item.clientId)?.name ?? ""}`
+            `${item.name} ${item.clientId ? (clients.get(item.clientId) ?? "") : ""}`
               .toLocaleLowerCase("pt-BR")
               .includes(query.toLocaleLowerCase("pt-BR")),
         )
@@ -58,7 +64,7 @@ export default function Projects({ open, today }: ViewProps) {
             a.priority.localeCompare(b.priority) ||
             b.updatedAt.localeCompare(a.updatedAt),
         ),
-    [state, query, status, area, priority],
+    [state.projects, clients, query, status, area, priority],
   );
   const currentPage = Math.min(
     page,
@@ -192,59 +198,67 @@ export default function Projects({ open, today }: ViewProps) {
                   <th>Estado</th>
                   <th>Prioridade</th>
                   <th>Entrega</th>
+                  <th>Avanço e atualizações</th>
                   <th>
                     <span className="sr-only">Abrir</span>
                   </th>
                 </tr>
               </thead>
               <tbody>
-                {list.map((project) => (
-                  <tr key={project.id}>
-                    <td>
-                      <button
-                        type="button"
-                        className="table-title"
-                        onClick={() =>
-                          open({ kind: "projectDetail", id: project.id })
-                        }
-                      >
-                        {project.name}
-                      </button>
-                      <small>
-                        {state.clients.find(
-                          (item) => item.id === project.clientId,
-                        )?.name ?? "Projeto interno"}
-                      </small>
-                    </td>
-                    <td>
-                      <Badge
-                        tone={
-                          !project.removedAt && project.status === "active"
-                            ? "green"
-                            : "neutral"
-                        }
-                      >
-                        {project.removedAt
-                          ? "Removido"
-                          : labels.project[project.status]}
-                      </Badge>
-                    </td>
-                    <td>
-                      <PriorityBadge value={project.priority} />
-                    </td>
-                    <td>{shortDate(project.dueOn)}</td>
-                    <td>
-                      <IconButton
-                        label={`Abrir ${project.name}`}
-                        onClick={() =>
-                          open({ kind: "projectDetail", id: project.id })
-                        }
-                      >
-                        <ArrowUpRight size={17} />
-                      </IconButton>
-                    </td>
-                  </tr>
-                ))}
+                {list.map((project) => {
+                  const progress = projectProgress(state, project);
+                  return (
+                    <tr key={project.id}>
+                      <td>
+                        <button
+                          type="button"
+                          className="table-title"
+                          onClick={() =>
+                            open({ kind: "projectDetail", id: project.id })
+                          }
+                        >
+                          {project.name}
+                        </button>
+                        <small>
+                          {(project.clientId &&
+                            clients.get(project.clientId)) ||
+                            "Projeto interno"}
+                        </small>
+                      </td>
+                      <td>
+                        <Badge
+                          tone={
+                            !project.removedAt && project.status === "active"
+                              ? "green"
+                              : "neutral"
+                          }
+                        >
+                          {project.removedAt
+                            ? "Removido"
+                            : labels.project[project.status]}
+                        </Badge>
+                      </td>
+                      <td>
+                        <PriorityBadge value={project.priority} />
+                      </td>
+                      <td>{shortDate(project.dueOn)}</td>
+                      <td>
+                        <ProjectMeter percent={progress.percent} />
+                        <small>{updateCountLabel(progress.updateCount)}</small>
+                      </td>
+                      <td>
+                        <IconButton
+                          label={`Abrir ${project.name}`}
+                          onClick={() =>
+                            open({ kind: "projectDetail", id: project.id })
+                          }
+                        >
+                          <ArrowUpRight size={17} />
+                        </IconButton>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

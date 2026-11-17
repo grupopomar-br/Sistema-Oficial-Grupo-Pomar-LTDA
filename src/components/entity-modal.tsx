@@ -21,6 +21,9 @@ import { extendClientTerm } from "@/lib/domain/client-term";
 import { parseBRL } from "@/lib/domain/finance";
 import { expenseGroups, expensePurposes } from "@/lib/domain/cash-movement";
 import { installmentRemaining } from "@/lib/domain/workspace";
+import { projectProgress } from "@/lib/domain/project-progress";
+import { isActiveProject } from "@/lib/domain/selectors";
+import { ProjectUpdateFields } from "./project-update-fields";
 
 const value = (form: FormData, key: string) =>
   String(form.get(key) ?? "").trim();
@@ -916,20 +919,37 @@ export default function EntityModal({
       </form>,
     );
   }
-  if (modal.kind === "note")
+  if (modal.kind === "note") {
+    const project = initialState.projects.find(
+      (item) => item.id === modal.projectId,
+    );
+    if (!project || project.removedAt) return null;
+    const tracking =
+      (mode === "local" || initialState.projectUpdatesReady) &&
+      isActiveProject(project);
     return content(
-      "Registrar atualização",
+      tracking ? "Registrar avanço" : "Registrar atualização",
       <form
-        onSubmit={submit((form) => ({
-          type: "addUpdate",
-          projectId: modal.projectId,
-          message: value(form, "message"),
-        }))}
+        onSubmit={submit((form) => {
+          const message = value(form, "message");
+          if (!tracking)
+            return { type: "addUpdate", projectId: project.id, message };
+          const percent = nullable(form, "progressPercent");
+          return {
+            type: "recordProjectUpdate",
+            projectId: project.id,
+            expectedVersion: project.version,
+            message,
+            progressPercent: percent === null ? null : Number(percent),
+            nextAction: value(form, "nextAction"),
+            nextActionOn: nullable(form, "nextActionOn"),
+          };
+        })}
       >
         <Field label="Decisão, entrega ou próximo passo">
           <textarea
             name="message"
-            rows={6}
+            rows={4}
             required
             minLength={3}
             maxLength={5000}
@@ -937,9 +957,17 @@ export default function EntityModal({
             placeholder="O que mudou? O que foi validado? O que fica pendente?"
           />
         </Field>
-        {footer("Registrar atualização")}
+        {tracking && (
+          <ProjectUpdateFields
+            project={project}
+            progress={projectProgress(initialState, project).percent}
+          />
+        )}
+        {footer(tracking ? "Registrar avanço" : "Registrar atualização")}
       </form>,
+      project.name,
     );
+  }
   if (modal.kind === "dateReceipt")
     return content(
       "Conciliar data de recebimento",

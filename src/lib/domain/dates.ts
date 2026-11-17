@@ -8,13 +8,15 @@ export function isDateOnly(value: string): boolean {
   );
 }
 
+const operationDate = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "America/Fortaleza",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+
 export function todayDate(now = new Date()): string {
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "America/Fortaleza",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(now);
+  const parts = operationDate.formatToParts(now);
   return ["year", "month", "day"]
     .map((type) => parts.find((part) => part.type === type)!.value)
     .join("-");

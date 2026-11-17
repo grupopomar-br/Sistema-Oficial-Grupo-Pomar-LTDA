@@ -20,17 +20,16 @@ import {
   EmptyState,
   MonthPicker,
   PriorityBadge,
-  SectionHeading,
   StatCard,
 } from "../ui";
-import { ProjectCard } from "../project-card";
+import { ProjectRadar } from "./project-radar";
 import type { ViewProps } from "../types";
 import {
   getDailyFocus,
   getAlerts,
   getFinanceSummary,
-  isActiveProject,
 } from "@/lib/domain/selectors";
+import { projectRadar } from "@/lib/domain/project-radar";
 import { money, shortDate } from "@/lib/domain/dates";
 import { useMemo } from "react";
 
@@ -41,9 +40,12 @@ export default function Overview(props: ViewProps) {
     () => getFinanceSummary(state, month),
     [state, month],
   );
-  const focus = useMemo(() => getDailyFocus(state, today), [state, today]);
   const alerts = useMemo(() => getAlerts(state, today), [state, today]);
-  const active = state.projects.filter(isActiveProject);
+  const focus = useMemo(
+    () => getDailyFocus(state, today, alerts),
+    [state, today, alerts],
+  );
+  const radar = useMemo(() => projectRadar(state, today), [state, today]);
   const openTasks = state.tasks.filter((item) => item.status !== "done");
   const format = (value: number) => (hiddenValues ? "••••" : money(value));
   const openFocus = (item: (typeof focus)[number]) => {
@@ -56,28 +58,19 @@ export default function Overview(props: ViewProps) {
       open({ kind: "opportunity", id: item.entityId });
     else open({ kind: "projectDetail", id: item.entityId });
   };
-  const critical = [...active]
-    .sort(
-      (a, b) =>
-        a.priority.localeCompare(b.priority) ||
-        (a.dueOn ?? "9999").localeCompare(b.dueOn ?? "9999"),
-    )
-    .slice(0, 2);
   return (
     <div className="view-stack">
       <div className="overview-intro">
         <div>
-          <span className="eyebrow">DIREÇÃO PARA O QUE IMPORTA</span>
-          <h2>Sua operação, com clareza.</h2>
-          <p>Proteja suas entregas. Destrave o próximo passo.</p>
+          <h2>Painel da operação</h2>
         </div>
         <MonthPicker value={month} onChange={props.setMonth} />
       </div>
       <div className="stats-grid">
         <StatCard
           title="Projetos em movimento"
-          value={active.length}
-          detail={`${active.filter((item) => item.status === "waiting").length} aguardando terceiros`}
+          value={radar.projects.length}
+          detail={`${radar.projects.filter(({ project }) => project.status === "waiting").length} aguardando terceiros`}
           icon={FolderKanban}
           accent
           onClick={() => navigate("projects")}
@@ -104,12 +97,17 @@ export default function Overview(props: ViewProps) {
           onClick={() => navigate("finance")}
         />
       </div>
+      <ProjectRadar
+        data={radar}
+        open={open}
+        navigate={navigate}
+        tracking={mode === "local" || state.projectUpdatesReady}
+      />
       <div className="dashboard-main">
         <section className="panel focus-panel">
           <div className="panel-heading">
             <div>
-              <span className="eyebrow">COMANDO DO DIA</span>
-              <h2>O próximo passo é o que move.</h2>
+              <h2>Prioridades de hoje</h2>
             </div>
             <Button variant="ghost" onClick={() => open({ kind: "task" })}>
               <Plus size={16} />
@@ -252,47 +250,12 @@ export default function Overview(props: ViewProps) {
                 >
                   <span className={`area-dot dot-${area.color}`} />
                   <span>{area.name}</span>
-                  <strong>
-                    {active.filter((item) => item.areaId === area.id).length}
-                  </strong>
+                  <strong>{radar.areas.get(area.id) ?? 0}</strong>
                 </button>
               ))}
           </section>
         </aside>
       </div>
-      <section>
-        <SectionHeading
-          eyebrow="PROJETOS EM FOCO"
-          title="Onde sua atenção gera mais impacto"
-        >
-          <Button variant="ghost" onClick={() => navigate("projects")}>
-            Todos os projetos
-            <ArrowUpRight size={16} />
-          </Button>
-        </SectionHeading>
-        {critical.length ? (
-          <div className="project-grid">
-            {critical.map((project) => (
-              <ProjectCard
-                key={project.id}
-                project={project}
-                today={today}
-                onOpen={() => open({ kind: "projectDetail", id: project.id })}
-              />
-            ))}
-          </div>
-        ) : (
-          <div className="panel">
-            <EmptyState
-              icon={FolderKanban}
-              title="A próxima entrega começa aqui."
-              description="Conecte cliente, escopo, prazo e próxima ação em um só projeto."
-              action="Criar projeto"
-              onAction={() => open({ kind: "project" })}
-            />
-          </div>
-        )}
-      </section>
       <section className="panel">
         <div className="panel-heading">
           <div>

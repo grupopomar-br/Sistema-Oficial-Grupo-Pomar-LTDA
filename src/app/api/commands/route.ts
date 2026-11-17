@@ -20,6 +20,24 @@ export async function POST(request: Request) {
     const { commandId, command } = envelopeSchema.parse(
       await boundedJson(request),
     );
+    if (command.type === "recordProjectUpdate") {
+      const { error } = await supabase.rpc("pomar_record_project_update", {
+        p_key: commandId,
+        p_project: command.projectId,
+        p_version: command.expectedVersion,
+        p_message: command.message,
+        p_progress: command.progressPercent,
+        p_next_action: command.nextAction,
+        p_next_action_on: command.nextActionOn,
+      });
+      if (error?.code === "PGRST202")
+        throw new AccessError(
+          "Ative o acompanhamento de projetos no Supabase para salvar o avanço.",
+          503,
+        );
+      if (error) throw databaseFailure(error);
+      return json({ workspace: await readWorkspace(supabase) });
+    }
     const { error } =
       command.type === "setProjectRemoved"
         ? await supabase.rpc("pomar_set_project_removed", {

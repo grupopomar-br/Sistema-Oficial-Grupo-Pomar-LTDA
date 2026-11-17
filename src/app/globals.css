@@ -1076,23 +1076,14 @@ small {
 .project-card .badge {
   font-size: 9px;
 }
-.project-progress {
-  margin-top: 21px;
+.project-advance {
+  margin: 16px 0 10px;
 }
-.project-progress > div:first-child {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: 8px;
-  color: #8b9c82;
-  letter-spacing: 0.09em;
-  font-weight: 650;
-  margin-bottom: 9px;
-}
-.project-progress strong {
-  font-size: 9px;
-  letter-spacing: 0;
-  color: #6f8763;
+.project-advance > small {
+  display: block;
+  margin-top: 7px;
+  color: #53685e;
+  font-size: 11px;
 }
 .progress-track {
   height: 5px;
