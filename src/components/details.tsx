@@ -35,7 +35,9 @@ import {
   shortDate,
   projectDurationLabel,
 } from "@/lib/domain/dates";
-import { projectProgress, relatedProjectId } from "@/lib/domain/selectors";
+import { isActiveProject, relatedProjectId } from "@/lib/domain/selectors";
+import { projectProgress } from "@/lib/domain/project-progress";
+import { ProjectMeter, updateCountLabel } from "./project-meter";
 
 export function EntityDetails({
   modal,
@@ -186,6 +188,9 @@ export function EntityDetails({
   }
   const project = state.projects.find((item) => item.id === modal.id);
   if (!project) return null;
+  const progress = projectProgress(state, project);
+  const tracking =
+    (mode === "local" || state.projectUpdatesReady) && isActiveProject(project);
   const client = state.clients.find((item) => item.id === project.clientId);
   const contractor = state.clients.find(
     (item) => item.id === project.contractorId,
@@ -229,6 +234,14 @@ export function EntityDetails({
           <PriorityBadge value={project.priority} />
         </div>
         <div className="button-group">
+          {tracking && (
+            <Button
+              variant="primary"
+              onClick={() => open({ kind: "note", projectId: project.id })}
+            >
+              <Plus size={15} /> Registrar avanço
+            </Button>
+          )}
           {mode === "cloud" && (
             <Button
               onClick={() => open({ kind: "projectMedia", id: project.id })}
@@ -268,13 +281,26 @@ export function EntityDetails({
         <div>
           <span>Tarefas concluídas</span>
           <strong>
-            {tasks.filter((item) => item.status === "done").length}/
-            {tasks.length}
+            {progress.completedTasks}/{progress.taskCount}
           </strong>
         </div>
       </div>
-      <div className="progress-track">
-        <span style={{ width: `${projectProgress(state, project.id)}%` }} />
+      <div className="project-advance">
+        <ProjectMeter
+          percent={progress.percent}
+          label={
+            progress.source === "reported"
+              ? "Avanço informado"
+              : progress.source === "completed"
+                ? "Projeto concluído"
+                : "Avanço pelas tarefas"
+          }
+        />
+        <small>
+          {updateCountLabel(progress.updateCount)}
+          {progress.latestUpdate &&
+            ` · Última em ${fullDate(progress.latestUpdate.createdAt)}`}
+        </small>
       </div>
       <p className="helper-text">
         {project.removedAt
@@ -386,7 +412,7 @@ export function EntityDetails({
       )}
       <div className="detail-section-heading">
         <h3>Contexto e decisões</h3>
-        {!project.removedAt && (
+        {!project.removedAt && !tracking && (
           <Button
             variant="ghost"
             onClick={() => open({ kind: "note", projectId: project.id })}
@@ -402,7 +428,11 @@ export function EntityDetails({
             <span className="history-dot" />
             <div>
               <p style={{ whiteSpace: "pre-wrap" }}>{entry.message}</p>
-              <small>{fullDate(entry.createdAt)}</small>
+              <small>
+                {fullDate(entry.createdAt)}
+                {entry.progressPercent !== undefined &&
+                  ` · ${entry.progressPercent}% de avanço`}
+              </small>
             </div>
           </div>
         ))}

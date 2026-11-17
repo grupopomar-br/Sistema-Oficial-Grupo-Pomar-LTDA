@@ -2,6 +2,7 @@ import type { Workspace, Priority, Project } from "./model.ts";
 import { daysBetween, todayDate } from "./dates.ts";
 import { installmentRemaining } from "./workspace.ts";
 import { cashMovement } from "./cash-movement.ts";
+import { projectProgress } from "./project-progress.ts";
 
 export const isActiveProject = (project: Project) =>
   !project.removedAt &&
@@ -91,8 +92,16 @@ export function getAlerts(state: Workspace, today: string): AlertItem[] {
         dueOn: project.nextActionOn,
       });
     else if (
-      daysBetween(todayDate(new Date(project.updatedAt)), today) >=
-      state.settings.staleDays
+      project.status !== "paused" &&
+      daysBetween(
+        todayDate(
+          new Date(
+            projectProgress(state, project).latestUpdate?.createdAt ??
+              project.createdAt,
+          ),
+        ),
+        today,
+      ) >= state.settings.staleDays
     )
       alerts.push({
         id: `stale:${project.id}`,
@@ -144,9 +153,14 @@ export function getAlerts(state: Workspace, today: string): AlertItem[] {
   );
 }
 
-export function getDailyFocus(state: Workspace, today: string): FocusItem[] {
+export function getDailyFocus(
+  state: Workspace,
+  today: string,
+  alerts = getAlerts(state, today),
+): FocusItem[] {
   const items: FocusItem[] = [];
   const projectsById = new Map(state.projects.map((item) => [item.id, item]));
+  const alertedProjects = new Set<string>();
   for (const task of state.tasks.filter((item) => item.status !== "done")) {
     const due = !!task.dueOn && task.dueOn <= today;
     const pinned = task.focusOn === today;
@@ -166,15 +180,16 @@ export function getDailyFocus(state: Workspace, today: string): FocusItem[] {
           priorityScore(task.priority) * 10,
       });
   }
-  for (const alert of getAlerts(state, today).filter(
-    (item) => item.category !== "task",
-  ))
+  for (const alert of alerts) {
+    if (alert.category === "task") continue;
+    if (alert.category === "project") alertedProjects.add(alert.entityId);
     items.push({
       ...alert,
       score:
         (alert.severity === "danger" ? -35 : 10) +
         priorityScore(alert.priority) * 10,
     });
+  }
   for (const project of state.projects.filter(
     (item) =>
       isActiveProject(item) &&
@@ -182,9 +197,7 @@ export function getDailyFocus(state: Workspace, today: string): FocusItem[] {
       item.nextAction.trim(),
   ))
     if (
-      !items.some(
-        (item) => item.category === "project" && item.entityId === project.id,
-      ) &&
+      !alertedProjects.has(project.id) &&
       (!project.nextActionOn || project.nextActionOn <= today)
     )
       items.push({
@@ -250,18 +263,6 @@ export function getFinanceSummary(state: Workspace, month: string) {
       )
       .reduce((sum, item) => sum + item.amountCents, 0),
   };
-}
-
-export function projectProgress(state: Workspace, id: string): number {
-  const project = state.projects.find((item) => item.id === id);
-  if (project?.status === "completed") return 100;
-  const tasks = state.tasks.filter((item) => item.projectId === id);
-  return tasks.length
-    ? Math.round(
-        (tasks.filter((item) => item.status === "done").length / tasks.length) *
-          100,
-      )
-    : 0;
 }
 
 export function relatedProjectId(

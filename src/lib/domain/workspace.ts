@@ -823,21 +823,44 @@ export function applyCommand(
       );
       break;
     }
-    case "addUpdate": {
-      required(
-        state.projects.some((item) => item.id === command.projectId),
-        "Projeto não encontrado.",
+    case "addUpdate":
+    case "recordProjectUpdate": {
+      const project = state.projects.find(
+        (item) => item.id === command.projectId,
       );
+      required(project, "Projeto não encontrado.");
+      required(
+        !project.removedAt,
+        "Restaure o projeto para registrar uma atualização.",
+      );
+      if (command.type === "recordProjectUpdate") {
+        if (project.version !== command.expectedVersion)
+          throw new BusinessError(
+            "Este projeto mudou. Atualize a ficha antes de continuar.",
+            "CONFLICT",
+          );
+        required(
+          project.status !== "completed" && project.status !== "cancelled",
+          "Abra o projeto novamente para registrar um avanço.",
+        );
+        save(state.projects, {
+          ...project,
+          nextAction: command.nextAction,
+          nextActionOn: command.nextActionOn,
+        });
+      } else {
+        save(state.projects, { ...project });
+      }
       state.updates.push({
         ...newBase(now),
         id: envelope.commandId,
         projectId: command.projectId,
         message: command.message,
+        ...(command.type === "recordProjectUpdate" &&
+        command.progressPercent !== null
+          ? { progressPercent: command.progressPercent }
+          : {}),
       });
-      const project = state.projects.find(
-        (item) => item.id === command.projectId,
-      )!;
-      save(state.projects, { ...project });
       log("project", command.projectId, "note", command.message);
       break;
     }

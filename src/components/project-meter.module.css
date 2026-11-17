@@ -1,0 +1,86 @@
+.meter {
+  min-width: 6.5rem;
+  display: grid;
+  gap: 5px;
+}
+.readout {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 550;
+  color: #53685e;
+}
+.readout strong {
+  color: var(--green);
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+.meter progress {
+  appearance: none;
+  display: block;
+  width: 100%;
+  height: 6px;
+  overflow: hidden;
+  border: 0;
+  border-radius: 999px;
+  background: #e5eee5;
+  color: #487a4a;
+  accent-color: #487a4a;
+}
+.meter progress::-webkit-progress-bar {
+  background: transparent;
+}
+.meter progress::-webkit-progress-value {
+  border-radius: 999px;
+  background: linear-gradient(90deg, #3a6d48, #8cae48);
+}
+.meter progress::-moz-progress-bar {
+  border-radius: 999px;
+  background: linear-gradient(90deg, #3a6d48, #8cae48);
+}
+.field {
+  margin: 16px 0;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: #f5f8f3;
+}
+.fieldHeader {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  justify-content: space-between;
+  color: var(--green);
+  font-weight: 650;
+  font-size: 13px;
+}
+.fieldHeader output {
+  color: var(--green);
+  font-size: 20px;
+  font-variant-numeric: tabular-nums;
+}
+.field input[type="range"] {
+  display: block;
+  width: 100%;
+  min-height: 34px;
+  margin: 4px 0;
+  padding: 0;
+  accent-color: var(--green-2);
+}
+.fieldFooter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 9px;
+}
+.fieldFooter small {
+  color: #53685e;
+  font-size: 11px;
+}
+.fieldFooter button {
+  min-height: 36px;
+}

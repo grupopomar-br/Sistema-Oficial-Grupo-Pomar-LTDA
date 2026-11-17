@@ -9,7 +9,9 @@ import {
   daysBetween,
   projectDurationLabel,
 } from "@/lib/domain/dates";
-import { projectProgress, isActiveProject } from "@/lib/domain/selectors";
+import { isActiveProject } from "@/lib/domain/selectors";
+import { projectProgress } from "@/lib/domain/project-progress";
+import { ProjectMeter, updateCountLabel } from "./project-meter";
 
 export function ProjectCard({
   project,
@@ -23,9 +25,7 @@ export function ProjectCard({
   const { state } = useWorkspace();
   const client = state.clients.find((item) => item.id === project.clientId);
   const area = state.areas.find((item) => item.id === project.areaId);
-  const tasks = state.tasks.filter((item) => item.projectId === project.id);
-  const done = tasks.filter((item) => item.status === "done").length;
-  const progress = projectProgress(state, project.id);
+  const progress = projectProgress(state, project);
   const remaining = project.dueOn ? daysBetween(today, project.dueOn) : null;
   const active = isActiveProject(project);
   const statusLabel = project.removedAt
@@ -60,16 +60,12 @@ export function ProjectCard({
         </Badge>
         <Badge tone={area?.color}>{area?.name ?? "Área"}</Badge>
       </div>
-      <div className="project-progress">
-        <div>
-          <span>ENTREGAS EM TAREFAS</span>
-          <strong>
-            {done}/{tasks.length}
-          </strong>
-        </div>
-        <div className="progress-track">
-          <span style={{ width: `${progress}%` }} />
-        </div>
+      <div className="project-advance">
+        <ProjectMeter percent={progress.percent} />
+        <small>
+          {updateCountLabel(progress.updateCount)} · {progress.completedTasks}/
+          {progress.taskCount} tarefas
+        </small>
       </div>
       {!project.removedAt && (
         <div className="project-next">
