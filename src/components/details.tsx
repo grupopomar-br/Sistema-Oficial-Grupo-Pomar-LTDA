@@ -1,4 +1,5 @@
 "use client";
+import { isTaskClosed } from "@/lib/domain/delivery/schema";
 import { useState } from "react";
 import {
   ArrowUpRight,
@@ -14,6 +15,7 @@ import {
   Search,
   Trash2,
   RotateCcw,
+  ClipboardCheck,
 } from "lucide-react";
 import { useWorkspace } from "./workspace-provider";
 import {
@@ -38,6 +40,7 @@ import {
 import { isActiveProject, relatedProjectId } from "@/lib/domain/selectors";
 import { projectProgress } from "@/lib/domain/project-progress";
 import { ProjectMeter, updateCountLabel } from "./project-meter";
+import { TaskAction } from "./delivery/task-action";
 
 export function EntityDetails({
   modal,
@@ -234,6 +237,13 @@ export function EntityDetails({
           <PriorityBadge value={project.priority} />
         </div>
         <div className="button-group">
+          <Button
+            onClick={() =>
+              open({ kind: "deliveryProject", projectId: project.id })
+            }
+          >
+            <ClipboardCheck size={15} /> Entregas
+          </Button>
           {tracking && (
             <Button
               variant="primary"
@@ -279,7 +289,7 @@ export function EntityDetails({
           <strong>{fullDate(project.dueOn)}</strong>
         </div>
         <div>
-          <span>Tarefas concluídas</span>
+          <span>Tarefas gerais concluídas</span>
           <strong>
             {progress.completedTasks}/{progress.taskCount}
           </strong>
@@ -351,22 +361,7 @@ export function EntityDetails({
         <div className="detail-task-list">
           {tasks.map((task) => (
             <div key={task.id}>
-              <button
-                type="button"
-                className={`task-check ${task.status === "done" ? "checked" : ""}`}
-                aria-label={`${task.status === "done" ? "Reabrir" : "Concluir"} ${task.title}`}
-                disabled={saving}
-                onClick={() =>
-                  void execute({
-                    type: "setTaskStatus",
-                    id: task.id,
-                    expectedVersion: task.version,
-                    status: task.status === "done" ? "pending" : "done",
-                  })
-                }
-              >
-                {task.status === "done" && <Check size={14} />}
-              </button>
+              <TaskAction task={task} open={open} />
               <button
                 type="button"
                 className="detail-task-title"

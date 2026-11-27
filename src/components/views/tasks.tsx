@@ -1,6 +1,9 @@
 "use client";
+import { isVisibleDeliveryTask } from "@/lib/domain/delivery/selectors";
+import { isTaskClosed } from "@/lib/domain/delivery/schema";
 import { useMemo, useState } from "react";
 import { Check, Edit3, ListTodo, Plus, Target, Clock } from "lucide-react";
+import { TaskAction } from "../delivery/task-action";
 import { useWorkspace } from "../workspace-provider";
 import {
   Badge,
@@ -26,14 +29,15 @@ export default function Tasks({ open, today }: ViewProps) {
       state.tasks
         .filter(
           (item) =>
+            (filter === "all" || isVisibleDeliveryTask(state, item)) &&
             (filter === "all" ||
-              (filter === "open" && item.status !== "done") ||
-              (filter === "done" && item.status === "done") ||
+              (filter === "open" && !isTaskClosed(item)) ||
+              (filter === "done" && isTaskClosed(item)) ||
               (filter === "today" &&
-                item.status !== "done" &&
+                !isTaskClosed(item) &&
                 (item.focusOn === today || item.dueOn === today)) ||
               (filter === "late" &&
-                item.status !== "done" &&
+                !isTaskClosed(item) &&
                 !!item.dueOn &&
                 item.dueOn < today)) &&
             (project === "all" || item.projectId === project) &&
@@ -121,36 +125,19 @@ export default function Tasks({ open, today }: ViewProps) {
           <div className="task-list">
             {list.slice((current - 1) * 20, current * 20).map((task) => {
               const late =
-                !!task.dueOn && task.dueOn < today && task.status !== "done";
+                !!task.dueOn && task.dueOn < today && !isTaskClosed(task);
               return (
                 <div
-                  className={`task-row ${task.status === "done" ? "task-row-done" : ""}`}
+                  className={`task-row ${isTaskClosed(task) ? "task-row-done" : ""}`}
                   key={task.id}
                 >
-                  <button
-                    type="button"
-                    className={`task-check ${task.status === "done" ? "checked" : ""}`}
-                    aria-label={`${task.status === "done" ? "Reabrir" : "Concluir"} ${task.title}`}
-                    disabled={saving}
-                    onClick={() =>
-                      void execute({
-                        type: "setTaskStatus",
-                        id: task.id,
-                        status: task.status === "done" ? "pending" : "done",
-                        expectedVersion: task.version,
-                      })
-                    }
-                  >
-                    {task.status === "done" && <Check size={15} />}
-                  </button>
+                  <TaskAction task={task} open={open} />
                   <div className="task-row-content">
                     <div className="tag-row">
                       <PriorityBadge value={task.priority} />
                       {late && <Badge tone="danger">Atrasada</Badge>}
                       {task.status !== "pending" && (
-                        <Badge
-                          tone={task.status === "done" ? "green" : "neutral"}
-                        >
+                        <Badge tone={isTaskClosed(task) ? "green" : "neutral"}>
                           {labels.task[task.status]}
                         </Badge>
                       )}
@@ -185,7 +172,7 @@ export default function Tasks({ open, today }: ViewProps) {
                           : "Reservar no foco de hoje"
                       }
                       className={task.focusOn === today ? "focus-selected" : ""}
-                      disabled={saving || task.status === "done"}
+                      disabled={saving || isTaskClosed(task)}
                       onClick={() =>
                         void execute({
                           type: "saveTask",

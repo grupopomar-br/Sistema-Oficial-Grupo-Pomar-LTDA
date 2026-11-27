@@ -9,6 +9,9 @@ import {
 } from "./model.ts";
 import { addMonthsClamped, todayDate } from "./dates.ts";
 import { googleProfileKey } from "./google-results.ts";
+import { isTaskClosed } from "./delivery/schema.ts";
+import { applyDeliveryCommand } from "./delivery/operations.ts";
+import { validateDeliveryRelations } from "./delivery/validation.ts";
 
 export class BusinessError extends Error {
   code: string;
@@ -112,6 +115,10 @@ export function validateRelations(state: Workspace): void {
       "charges",
       "providerPayments",
       "refunds",
+      "deliveryPlans",
+      "deliveryItems",
+      "deliveryEvidence",
+      "deliveryEvents",
     ].map((key) => {
       const list = state[key as "clients"] as { id: string }[];
       const ids = new Set(list.map((item) => item.id));
@@ -164,7 +171,7 @@ export function validateRelations(state: Workspace): void {
       "Tarefa possui projeto inexistente.",
     );
     required(
-      (task.status === "done") === (task.completedAt !== null),
+      isTaskClosed(task) === (task.completedAt !== null),
       "A data de conclusão da tarefa está inconsistente.",
     );
   }
@@ -309,6 +316,7 @@ export function validateRelations(state: Workspace): void {
   }
   for (const item of state.ideas)
     required(exists("tasks", item.taskId), "Ideia possui tarefa inexistente.");
+  validateDeliveryRelations(state);
 }
 
 export function parseWorkspace(value: unknown): Workspace {
@@ -375,6 +383,13 @@ export function applyCommand(
     return updated;
   };
   switch (command.type) {
+    case "createDeliveryPlan":
+    case "recordDeliveryTask":
+    case "scheduleDeliveryRecurrence":
+    case "setDeliveryPlanStatus":
+      applyDeliveryCommand(state, command, now);
+      state.history = state.history.slice(0, 1000);
+      break;
     case "saveMeeting": {
       const before = state.meetings.find((m) => m.id === command.value.id);
       const changed =
@@ -581,6 +596,33 @@ export function applyCommand(
       break;
     }
     case "saveTask": {
+      const original = state.tasks.find((task) => task.id === command.value.id);
+      const managed = state.deliveryItems.some(
+        (item) => item.id === command.value.id,
+      );
+      if (managed) {
+        const fields = [
+          "title",
+          "projectId",
+          "priority",
+          "status",
+          "dueOn",
+          "description",
+          "completedAt",
+        ] as const;
+        required(
+          original &&
+            fields.every((field) => original[field] === command.value[field]),
+          "Abra a entrega para alterar critérios, prazo ou conclusão.",
+        );
+      } else {
+        required(
+          ["pending", "doing", "blocked", "done"].includes(
+            command.value.status,
+          ),
+          "Esse estado exige uma tarefa vinculada a uma entrega.",
+        );
+      }
       const value = {
         ...command.value,
         completedAt:
@@ -634,6 +676,10 @@ export function applyCommand(
       break;
     }
     case "setTaskStatus": {
+      required(
+        !state.deliveryItems.some((item) => item.id === command.id),
+        "Abra a entrega para validar critérios e evidências.",
+      );
       const task = state.tasks.find((item) => item.id === command.id);
       required(task, "Tarefa não encontrada.");
       if (task.status === command.status) return current;

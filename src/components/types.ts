@@ -1,6 +1,7 @@
 import type { Workspace } from "@/lib/domain/model";
 
 export type View =
+  | "deliveries"
   | "results"
   | "meetings"
   | "week"
@@ -18,6 +19,11 @@ export type View =
   | "history"
   | "settings";
 export type ModalState =
+  | { kind: "deliveryProject"; projectId: string }
+  | { kind: "deliveryPlan"; projectId?: string }
+  | { kind: "deliveryTask"; id: string }
+  | { kind: "deliveryRecurrence"; planId: string }
+  | { kind: "deliveryPlanStatus"; planId: string }
   | { kind: "idea"; id?: string }
   | { kind: "client"; id?: string; termAction?: "edit" | "extend" }
   | { kind: "project"; id?: string }

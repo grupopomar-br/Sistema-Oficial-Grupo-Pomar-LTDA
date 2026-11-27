@@ -1,9 +1,12 @@
 "use client";
+import { isVisibleDeliveryTask } from "@/lib/domain/delivery/selectors";
+import { isTaskClosed } from "@/lib/domain/delivery/schema";
 import dynamic from "next/dynamic";
 import { SessionBoundary } from "./session-boundary";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   LayoutDashboard,
+  ClipboardCheck,
   BarChart3,
   CalendarClock,
   CalendarDays,
@@ -89,9 +92,19 @@ const SettingsView = dynamic(() => import("./views/settings"), {
   loading: Skeleton,
 });
 const EntityModal = dynamic(() => import("./entity-modal"), { ssr: false });
+const Deliveries = dynamic(() => import("./views/deliveries"), {
+  loading: Skeleton,
+});
+const DeliveryProject = dynamic(() => import("./delivery/project"), {
+  ssr: false,
+});
+const DeliveryEditor = dynamic(() => import("./delivery/editors"), {
+  ssr: false,
+});
 const navigation = [
   { id: "overview", label: "Visão geral", icon: LayoutDashboard },
   { id: "week", label: "Semana", icon: CalendarDays },
+  { id: "deliveries", label: "Entregas", icon: ClipboardCheck },
   { id: "projects", label: "Projetos", icon: FolderKanban },
   { id: "tasks", label: "Tarefas", icon: ListTodo },
   { id: "clients", label: "Clientes", icon: Users },
@@ -141,7 +154,18 @@ function Shell({ initialView = "overview" }: { initialView?: View }) {
     window.history.pushState(null, "", `?view=${next}`);
     window.scrollTo({ top: 0, behavior: "instant" });
   }, []);
-  const open = useCallback((value: ModalState) => setModal(value), []);
+  const open = useCallback(
+    (value: ModalState) => {
+      if (
+        value.kind === "task" &&
+        value.id &&
+        state.deliveryItems.some((item) => item.id === value.id)
+      )
+        setModal({ kind: "deliveryTask", id: value.id });
+      else setModal(value);
+    },
+    [state.deliveryItems],
+  );
   useEffect(() => {
     const onBack = () => {
       const next = new URLSearchParams(window.location.search).get("view");
@@ -176,7 +200,9 @@ function Shell({ initialView = "overview" }: { initialView?: View }) {
   );
   const counts: Partial<Record<View, number>> = {
     projects: state.projects.filter(isActiveProject).length,
-    tasks: state.tasks.filter((item) => item.status !== "done").length,
+    tasks: state.tasks.filter(
+      (item) => !isTaskClosed(item) && isVisibleDeliveryTask(state, item),
+    ).length,
     alerts: alertCount,
     notifications: notificationFeed.unread,
   };
@@ -450,6 +476,7 @@ function Shell({ initialView = "overview" }: { initialView?: View }) {
               {view === "results" && <GoogleResults {...viewProps} />}
               {view === "meetings" && <Meetings {...viewProps} />}
               {view === "week" && <Week {...viewProps} />}
+              {view === "deliveries" && <Deliveries {...viewProps} />}
               {view === "notifications" && <Notifications {...viewProps} />}
               {view === "ideas" && <Ideas {...viewProps} />}
               {view === "methodologies" && <Methodologies />}
@@ -472,7 +499,37 @@ function Shell({ initialView = "overview" }: { initialView?: View }) {
           <span>Central Operacional · v0.4</span>
         </footer>
       </div>
-      {modal?.kind === "idea" ? (
+      {modal?.kind === "deliveryProject" ? (
+        <DeliveryProject
+          projectId={modal.projectId}
+          today={today}
+          open={open}
+          onClose={() => setModal(null)}
+          onResults={() => {
+            setModal(null);
+            navigate("results");
+          }}
+        />
+      ) : modal &&
+        (modal.kind === "deliveryPlan" ||
+          modal.kind === "deliveryTask" ||
+          modal.kind === "deliveryRecurrence" ||
+          modal.kind === "deliveryPlanStatus") ? (
+        <DeliveryEditor
+          modal={modal}
+          key={JSON.stringify(modal)}
+          onClose={() => {
+            const projectId =
+              modal.kind === "deliveryPlan"
+                ? modal.projectId
+                : modal.kind === "deliveryTask"
+                  ? state.tasks.find((task) => task.id === modal.id)?.projectId
+                  : state.deliveryPlans.find((plan) => plan.id === modal.planId)
+                      ?.projectId;
+            setModal(projectId ? { kind: "deliveryProject", projectId } : null);
+          }}
+        />
+      ) : modal?.kind === "idea" ? (
         <IdeaEditor id={modal.id} onClose={() => setModal(null)} />
       ) : modal?.kind === "meeting" ? (
         <MeetingEditor

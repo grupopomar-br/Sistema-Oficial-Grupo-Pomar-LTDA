@@ -1,4 +1,6 @@
 "use client";
+import { isVisibleDeliveryTask } from "@/lib/domain/delivery/selectors";
+import { isTaskClosed } from "@/lib/domain/delivery/schema";
 
 import { useMemo, useState } from "react";
 import {
@@ -14,6 +16,7 @@ import { fullDate } from "@/lib/domain/dates";
 import { labels } from "@/lib/domain/model";
 import { shiftDay, weekPlan, weekStart } from "@/lib/domain/week";
 import type { ViewProps } from "../types";
+import { TaskAction } from "../delivery/task-action";
 import { useWorkspace } from "../workspace-provider";
 import {
   Badge,
@@ -33,7 +36,11 @@ const dayFormatter = new Intl.DateTimeFormat("pt-BR", {
 export default function Week({ open, today }: ViewProps) {
   const { state, execute, saving, operationError, clearOperationError } =
     useWorkspace();
-  const { tasks, projects, meetings } = state;
+  const { projects, meetings } = state;
+  const tasks = useMemo(
+    () => state.tasks.filter((task) => isVisibleDeliveryTask(state, task)),
+    [state],
+  );
   const [monday, setMonday] = useState(() => weekStart(today, true));
   const [placingOn, setPlacingOn] = useState<string | null>(null);
   const [query, setQuery] = useState("");
@@ -44,8 +51,7 @@ export default function Week({ open, today }: ViewProps) {
   const totals = days.reduce(
     (total, day) => ({
       tasks: total.tasks + day.tasks.length,
-      done:
-        total.done + day.tasks.filter((task) => task.status === "done").length,
+      done: total.done + day.tasks.filter((task) => isTaskClosed(task)).length,
       meetings: total.meetings + day.meetings.length,
       projects: total.projects + day.projects.length,
     }),
@@ -55,7 +61,7 @@ export default function Week({ open, today }: ViewProps) {
     ? tasks
         .filter(
           (task) =>
-            task.status !== "done" &&
+            !isTaskClosed(task) &&
             (task.focusOn ?? task.dueOn) !== placingOn &&
             task.title
               .toLocaleLowerCase("pt-BR")
@@ -63,7 +69,7 @@ export default function Week({ open, today }: ViewProps) {
         )
         .slice(0, 20)
     : [];
-  const hasPending = tasks.some((task) => task.status !== "done");
+  const hasPending = tasks.some((task) => !isTaskClosed(task));
 
   return (
     <div className="view-stack">
@@ -218,21 +224,8 @@ export default function Week({ open, today }: ViewProps) {
                         </span>
                         <PriorityBadge value={task.priority} />
                       </button>
-                      {task.status !== "done" && (
-                        <IconButton
-                          label={`Concluir ${task.title}`}
-                          disabled={saving}
-                          onClick={() =>
-                            void execute({
-                              type: "setTaskStatus",
-                              id: task.id,
-                              status: "done",
-                              expectedVersion: task.version,
-                            })
-                          }
-                        >
-                          <Check size={16} />
-                        </IconButton>
+                      {!isTaskClosed(task) && (
+                        <TaskAction task={task} open={open} />
                       )}
                     </li>
                   ))}

@@ -20,6 +20,26 @@ export function databaseFailure(error: {
 }): DatabaseError {
   const message = error.message ?? "";
   const messages: Record<string, string> = {
+    POMAR_DELIVERY_TASK:
+      "Abra a entrega para revisar critérios, evidências e conclusão.",
+    POMAR_DELIVERY_PROJECT:
+      "Retome o plano e confira se o projeto está disponível para executar entregas.",
+    POMAR_DELIVERY_CONTRACT:
+      "Selecione um contrato ativo vinculado ao mesmo projeto e cliente.",
+    POMAR_DELIVERY_SCHEDULE:
+      "A recorrência já foi confirmada. Preserve as regras e quantidades do escopo registrado.",
+    POMAR_DELIVERY_REOPEN:
+      "Reabra a entrega com uma justificativa antes de revisar a conclusão.",
+    POMAR_DELIVERY_EXCLUDE:
+      "A dispensa exige um item condicional, quantidade zero e justificativa.",
+    POMAR_DELIVERY_DEPENDENCY:
+      "Confira as dependências e registre a próxima ação antes de validar.",
+    POMAR_DELIVERY_REASON:
+      "Justifique a mudança do prazo ou da quantidade realizada.",
+    POMAR_DELIVERY_EVIDENCE:
+      "Inclua uma evidência identificável e a data real de execução até hoje.",
+    POMAR_DELIVERY_ACCEPTANCE:
+      "Encaminhe para validação, confirme a quantidade e todos os critérios de aceite.",
     POMAR_DEVICE_LIMIT:
       "O limite é de dez aparelhos ativos. Desative um aparelho antes de cadastrar outro.",
     POMAR_TEST_RATE_LIMIT:
@@ -95,6 +115,11 @@ export function databaseFailure(error: {
   );
 }
 export async function readWorkspace(supabase: SupabaseClient) {
+  const deliveries = await supabase.rpc("pomar_workspace_deliveries");
+  if (deliveries.error?.code !== "PGRST202") {
+    if (deliveries.error) throw databaseFailure(deliveries.error);
+    return parseWorkspace(camelize(deliveries.data));
+  }
   const snapshot = await supabase.rpc("pomar_workspace_project_updates");
   if (snapshot.error?.code !== "PGRST202") {
     if (snapshot.error) throw databaseFailure(snapshot.error);
