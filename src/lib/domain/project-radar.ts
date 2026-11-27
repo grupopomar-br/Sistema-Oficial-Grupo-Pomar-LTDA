@@ -100,7 +100,7 @@ export function projectRadar(state: Workspace, today: string) {
   const projects = state.projects.filter(isActiveProject).map((project) => {
     const progress = projectProgress(state, project);
     const lastUpdateOn = todayDate(
-      new Date(progress.latestUpdate?.createdAt ?? project.createdAt),
+      new Date(progress.latestActivityAt ?? project.createdAt),
     );
     const daysLeft = project.dueOn ? daysBetween(today, project.dueOn) : null;
     areas.set(project.areaId, (areas.get(project.areaId) ?? 0) + 1);

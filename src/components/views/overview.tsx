@@ -1,4 +1,6 @@
 "use client";
+import { isVisibleDeliveryTask } from "@/lib/domain/delivery/selectors";
+import { isTaskClosed } from "@/lib/domain/delivery/schema";
 
 import {
   ArrowUpRight,
@@ -22,6 +24,8 @@ import {
   PriorityBadge,
   StatCard,
 } from "../ui";
+import { TaskAction } from "../delivery/task-action";
+import { DeliveryFocus } from "../delivery/focus";
 import { ProjectRadar } from "./project-radar";
 import type { ViewProps } from "../types";
 import {
@@ -46,7 +50,9 @@ export default function Overview(props: ViewProps) {
     [state, today, alerts],
   );
   const radar = useMemo(() => projectRadar(state, today), [state, today]);
-  const openTasks = state.tasks.filter((item) => item.status !== "done");
+  const openTasks = state.tasks.filter(
+    (item) => !isTaskClosed(item) && isVisibleDeliveryTask(state, item),
+  );
   const format = (value: number) => (hiddenValues ? "••••" : money(value));
   const openFocus = (item: (typeof focus)[number]) => {
     if (item.category === "billing") navigate("collections");
@@ -97,6 +103,7 @@ export default function Overview(props: ViewProps) {
           onClick={() => navigate("finance")}
         />
       </div>
+      <DeliveryFocus open={open} navigate={navigate} today={today} />
       <ProjectRadar
         data={radar}
         open={open}
@@ -160,25 +167,7 @@ export default function Overview(props: ViewProps) {
                         </button>
                       </div>
                     </div>
-                    {task && (
-                      <button
-                        type="button"
-                        className="task-check"
-                        aria-label={`Concluir ${task.title}`}
-                        title="Concluir tarefa"
-                        disabled={saving}
-                        onClick={() =>
-                          void execute({
-                            type: "setTaskStatus",
-                            id: task.id,
-                            expectedVersion: task.version,
-                            status: "done",
-                          })
-                        }
-                      >
-                        <Check size={16} />
-                      </button>
-                    )}
+                    {task && <TaskAction task={task} open={open} />}
                   </div>
                 );
               })}

@@ -20,6 +20,26 @@ export async function POST(request: Request) {
     const { commandId, command } = envelopeSchema.parse(
       await boundedJson(request),
     );
+    if (
+      [
+        "createDeliveryPlan",
+        "recordDeliveryTask",
+        "scheduleDeliveryRecurrence",
+        "setDeliveryPlanStatus",
+      ].includes(command.type)
+    ) {
+      const { error } = await supabase.rpc("pomar_delivery_command", {
+        p_key: commandId,
+        p_command: databaseCommand(command),
+      });
+      if (error?.code === "PGRST202")
+        throw new AccessError(
+          "Ative a Central de Entregas no ambiente de homologação para salvar.",
+          503,
+        );
+      if (error) throw databaseFailure(error);
+      return json({ workspace: await readWorkspace(supabase) });
+    }
     if (command.type === "recordProjectUpdate") {
       const { error } = await supabase.rpc("pomar_record_project_update", {
         p_key: commandId,

@@ -44,7 +44,12 @@ export default function EntityModal({
         | "search"
         | "import"
         | "idea"
-        | "meeting";
+        | "meeting"
+        | "deliveryProject"
+        | "deliveryPlan"
+        | "deliveryTask"
+        | "deliveryRecurrence"
+        | "deliveryPlanStatus";
     }
   >;
   onClose: () => void;

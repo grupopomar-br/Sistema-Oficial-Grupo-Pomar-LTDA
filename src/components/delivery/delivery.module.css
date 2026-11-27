@@ -1,0 +1,250 @@
+.counts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.counts button {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #fff;
+  padding: 18px;
+  text-align: left;
+  display: grid;
+  gap: 6px;
+  color: var(--green);
+}
+.counts button:hover {
+  border-color: #7b986e;
+  background: #f6f9f2;
+}
+.counts strong {
+  font-size: 28px;
+  line-height: 1;
+}
+.counts span {
+  font-size: 12px;
+  color: #53685e;
+}
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px;
+  border-bottom: 1px solid var(--line);
+}
+.item:last-child {
+  border-bottom: 0;
+}
+.itemBody {
+  min-width: 0;
+  flex: 1;
+}
+.title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: none;
+  border: 0;
+  color: var(--green);
+  text-align: left;
+  padding: 0;
+  margin: 4px 0 8px;
+  font-size: 16px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+.title svg {
+  flex: none;
+}
+.title:hover {
+  text-decoration: underline;
+}
+.item p {
+  margin: 8px 0 5px;
+  font-size: 16px;
+  overflow-wrap: anywhere;
+}
+.item small,
+.note,
+.record small,
+.planHeading small,
+.summary small,
+.scope small {
+  display: block;
+  font-size: 12px;
+  color: #53685e;
+  line-height: 1.65;
+}
+.required {
+  font-size: 11px;
+  color: #53685e;
+}
+.dependency {
+  color: #865619;
+}
+.summary {
+  display: grid;
+  gap: 16px;
+  padding: 20px 0;
+}
+.summary > div {
+  padding: 17px;
+  border: 1px solid #dfe8da;
+  border-radius: 12px;
+  background: #f5f8f1;
+  min-width: 0;
+}
+.summary small {
+  margin-top: 8px;
+}
+.summary p {
+  font-size: 13px;
+}
+.planHeading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 16px;
+}
+.scope {
+  padding: 15px;
+  background: #f4f7f2;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  margin: 12px 0;
+  overflow-wrap: anywhere;
+}
+.scope summary {
+  cursor: pointer;
+  color: var(--green);
+  font-weight: 600;
+  font-size: 13px;
+}
+.scope p {
+  white-space: pre-wrap;
+  font-size: 13px;
+  line-height: 1.7;
+  margin: 8px 0;
+}
+.group {
+  padding-top: 20px;
+}
+.group h3,
+.criteria h3 {
+  font-size: 15px;
+  color: var(--green);
+  margin-bottom: 10px;
+}
+.group > .list {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.record {
+  padding: 16px;
+  border-bottom: 1px solid var(--line);
+  overflow-wrap: anywhere;
+}
+.record p {
+  font-size: 13px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+.record a {
+  color: var(--green);
+  text-decoration: underline;
+}
+.fields {
+  padding: 0;
+  border: 0;
+  margin: 0;
+  min-width: 0;
+  display: grid;
+  gap: 14px;
+}
+.form {
+  padding-top: 6px;
+}
+.criteria {
+  padding: 15px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+}
+.criteria label {
+  margin: 13px 0;
+  align-items: flex-start;
+}
+.criteria input {
+  flex: none;
+  margin-top: 3px;
+}
+.criteria span {
+  font-size: 14px;
+  line-height: 1.6;
+}
+.rule {
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+.ruleHeading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.ruleHeading h3 {
+  font-size: 14px;
+  margin: 0;
+}
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.metrics dt {
+  font-size: 12px;
+  color: #53685e;
+}
+.metrics dd {
+  margin: 6px 0;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--green);
+}
+.empty {
+  padding: 20px 0;
+}
+@media (min-width: 720px) {
+  .counts {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 480px) {
+  .item {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  .item > .button {
+    align-self: flex-start;
+  }
+  .planHeading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .itemBody {
+    width: 100%;
+  }
+}

@@ -1,3 +1,4 @@
+import { isTaskClosed } from "./delivery/schema.ts";
 import type { Project, Task, Workspace } from "./model.ts";
 import { meetingLocalTime, type Meeting } from "./meetings.ts";
 
@@ -39,7 +40,7 @@ export function weekPlan(
   for (const task of tasks) {
     const planned = task.focusOn ?? task.dueOn;
     if (planned) byDate.get(planned)?.tasks.push(task);
-    if (task.dueOn && task.dueOn !== planned && task.status !== "done")
+    if (task.dueOn && task.dueOn !== planned && !isTaskClosed(task))
       byDate.get(task.dueOn)?.deadlines.push(task);
   }
   for (const project of projects) {
@@ -61,7 +62,7 @@ export function weekPlan(
   for (const day of days) {
     day.tasks.sort(
       (a, b) =>
-        Number(a.status === "done") - Number(b.status === "done") ||
+        Number(isTaskClosed(a)) - Number(isTaskClosed(b)) ||
         a.priority.localeCompare(b.priority) ||
         a.title.localeCompare(b.title, "pt-BR"),
     );

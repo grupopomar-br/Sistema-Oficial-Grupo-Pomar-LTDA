@@ -10,6 +10,16 @@ import {
 import { meetingSchema, meetingCommand } from "./meetings.ts";
 import { googleResultSchema, googleResultCommand } from "./google-results.ts";
 import { newId } from "./id.ts";
+import {
+  deliveryCommands,
+  deliveryTaskStatus,
+  servicePlaybookSchema,
+  deliveryPlanSchema,
+  deliveryItemSchema,
+  deliveryEvidenceSchema,
+  deliveryEventSchema,
+} from "./delivery/schema.ts";
+import { googleBusinessPlaybook } from "./delivery/playbooks.ts";
 import { z } from "zod";
 import { isDateOnly } from "./dates.ts";
 import { expensePurposes } from "./cash-movement.ts";
@@ -109,7 +119,7 @@ export const taskSchema = z.strictObject({
   title,
   projectId: id.nullable(),
   priority: prioritySchema,
-  status: z.enum(["pending", "doing", "blocked", "done"]),
+  status: deliveryTaskStatus,
   dueOn: date.nullable(),
   focusOn: date.nullable(),
   description: text(5000),
@@ -216,6 +226,12 @@ export const workspaceSchema = z.strictObject({
   expensePurposesReady: z.boolean().default(false),
   projectRemovalReady: z.boolean().default(false),
   projectUpdatesReady: z.boolean().default(false),
+  deliveryReady: z.boolean().default(false),
+  servicePlaybooks: z.array(servicePlaybookSchema).max(100).default([]),
+  deliveryPlans: z.array(deliveryPlanSchema).max(1000).default([]),
+  deliveryItems: z.array(deliveryItemSchema).max(20000).default([]),
+  deliveryEvidence: z.array(deliveryEvidenceSchema).max(40000).default([]),
+  deliveryEvents: z.array(deliveryEventSchema).max(40000).default([]),
   googleResults: z.array(googleResultSchema).max(10000).default([]),
   meetings: z.array(meetingSchema).max(10000).default([]),
   settings: settingsSchema,
@@ -245,6 +261,7 @@ export const workspaceSchema = z.strictObject({
   processedCommands: z.array(id).max(500),
 });
 export const commandSchema = z.discriminatedUnion("type", [
+  ...deliveryCommands,
   ...extensionCommands,
   ...personalizationCommands,
   meetingCommand,
@@ -362,6 +379,12 @@ export function emptyWorkspace(now = new Date().toISOString()): Workspace {
     expensePurposesReady: true,
     projectRemovalReady: true,
     projectUpdatesReady: true,
+    deliveryReady: true,
+    servicePlaybooks: [googleBusinessPlaybook],
+    deliveryPlans: [],
+    deliveryItems: [],
+    deliveryEvidence: [],
+    deliveryEvents: [],
     googleResults: [],
     meetings: [],
     profile: { avatarPath: "", version: 0 },
@@ -421,7 +444,10 @@ export const labels = {
     pending: "A fazer",
     doing: "Em andamento",
     blocked: "Bloqueada",
+    waiting_client: "Aguardando cliente",
+    review: "Em validação",
     done: "Concluída",
+    not_applicable: "Não aplicável",
   },
   client: { active: "Ativo", prospect: "Em negociação", archived: "Arquivado" },
   stage: {

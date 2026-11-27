@@ -1,3 +1,5 @@
+import { isVisibleDeliveryTask } from "./delivery/selectors.ts";
+import { isTaskClosed } from "./delivery/schema.ts";
 import type { Workspace, Priority, Project } from "./model.ts";
 import { daysBetween, todayDate } from "./dates.ts";
 import { installmentRemaining } from "./workspace.ts";
@@ -34,7 +36,12 @@ export function getAlerts(state: Workspace, today: string): AlertItem[] {
   const alerts: AlertItem[] = [];
   const contractsById = new Map(state.contracts.map((item) => [item.id, item]));
   for (const task of state.tasks)
-    if (task.status !== "done" && task.dueOn && task.dueOn < today)
+    if (
+      isVisibleDeliveryTask(state, task) &&
+      !isTaskClosed(task) &&
+      task.dueOn &&
+      task.dueOn < today
+    )
       alerts.push({
         id: `task:${task.id}`,
         title: task.title,
@@ -96,7 +103,7 @@ export function getAlerts(state: Workspace, today: string): AlertItem[] {
       daysBetween(
         todayDate(
           new Date(
-            projectProgress(state, project).latestUpdate?.createdAt ??
+            projectProgress(state, project).latestActivityAt ??
               project.createdAt,
           ),
         ),
@@ -161,7 +168,9 @@ export function getDailyFocus(
   const items: FocusItem[] = [];
   const projectsById = new Map(state.projects.map((item) => [item.id, item]));
   const alertedProjects = new Set<string>();
-  for (const task of state.tasks.filter((item) => item.status !== "done")) {
+  for (const task of state.tasks.filter(
+    (item) => !isTaskClosed(item) && isVisibleDeliveryTask(state, item),
+  )) {
     const due = !!task.dueOn && task.dueOn <= today;
     const pinned = task.focusOn === today;
     if (due || pinned || ["P0", "P1"].includes(task.priority))

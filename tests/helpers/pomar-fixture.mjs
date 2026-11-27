@@ -4,6 +4,11 @@ import { storageFixture } from "./storage-fixture.mjs";
 import { databaseCommand } from "../../src/lib/domain/transport.ts";
 
 export async function pomarFixture({ skipMigrations = [] } = {}) {
+  if (skipMigrations.includes("20261117145053_acompanhamento_de_projetos.sql"))
+    skipMigrations = [
+      ...skipMigrations,
+      "20261127111115_central_de_entregas.sql",
+    ];
   const db = new PGlite();
   const owner = "11111111-1111-4111-8111-111111111111",
     other = "22222222-2222-4222-8222-222222222222",
