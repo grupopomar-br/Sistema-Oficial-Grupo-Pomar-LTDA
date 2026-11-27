@@ -149,7 +149,7 @@ declare
  dependent pomar_private.delivery_items; dependent_task public.pomar_tasks;
  definition jsonb; step jsonb; rule jsonb; rules jsonb;
  starts date; ends date; implementation_due date; period_start date; period_end date; due date; performed date;
- month integer; created integer:=0; iid uuid; quantity integer; criteria jsonb; before_state jsonb;
+ month integer; created integer:=0; task_capacity integer; iid uuid; quantity integer; criteria jsonb; before_state jsonb;
  target_status text; next_action text; dependency text; reason text; evidence text;
  was_closed boolean; reopened text[]; changed boolean;
 begin
@@ -240,15 +240,14 @@ begin
    end if;
    perform (rule->>'key')::uuid;
   end loop;
-  if (select count(*) from public.pomar_tasks where owner_id=uid)+jsonb_array_length(rules)*((extract(year from age(plan.ends_on,plan.starts_on))::integer*12)+extract(month from age(plan.ends_on,plan.starts_on))::integer+2)>20000 then
-   raise exception using errcode='P0001',message='POMAR_SNAPSHOT_LIMIT';
-  end if;
+  task_capacity:=20000-(select count(*) from public.pomar_tasks where owner_id=uid);
   for month in 0..119 loop
    period_start:=(plan.starts_on+make_interval(months=>month))::date;
    exit when period_start>plan.ends_on;
    period_end:=least((plan.starts_on+make_interval(months=>month+1))::date-1,plan.ends_on);
    for rule in select value from jsonb_array_elements(rules) loop
     if exists(select 1 from pomar_private.delivery_items where owner_id=uid and plan_id=plan.id and step_key=rule->>'key' and delivery_items.period_start=period_start) then continue; end if;
+    if created>=task_capacity then raise exception using errcode='P0001',message='POMAR_SNAPSHOT_LIMIT'; end if;
     due:=case when rule->>'due_offset' is null then period_end else least(period_start+(rule->>'due_offset')::integer,period_end) end;
     iid:=gen_random_uuid();
     insert into public.pomar_tasks(id,owner_id,title,project_id,priority,status,due_on,description)

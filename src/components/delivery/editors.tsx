@@ -5,7 +5,12 @@ import { useWorkspace } from "../workspace-provider";
 import { Modal, Button, Field, Badge } from "../ui";
 import { labels, type Command } from "@/lib/domain/model";
 import { newId } from "@/lib/domain/id";
-import { todayDate, fullDate, addMonthsClamped } from "@/lib/domain/dates";
+import {
+  todayDate,
+  fullDate,
+  addMonthsClamped,
+  isDateOnly,
+} from "@/lib/domain/dates";
 import { shiftDay } from "@/lib/domain/week";
 import { contractPeriods } from "@/lib/domain/delivery/operations";
 import {
@@ -115,7 +120,12 @@ function PlanEditor({
   const [contractKey, setContractKey] = useState("");
   const selectedContract =
     contracts.find((c) => c.id === contractKey) ?? contracts[0];
-  const ends = starts
+  const canFillDuration =
+    isDateOnly(starts) &&
+    Number(starts.slice(0, 4)) +
+      Math.floor((Number(starts.slice(5, 7)) - 1 + Number(months)) / 12) <=
+      9999;
+  const ends = canFillDuration
     ? shiftDay(addMonthsClamped(starts, Number(months)), -1)
     : "";
   return (

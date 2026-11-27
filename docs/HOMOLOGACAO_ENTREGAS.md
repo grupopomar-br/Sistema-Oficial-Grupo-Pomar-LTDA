@@ -66,7 +66,7 @@ Os testes de domínio cobrem competências, ano bissexto, limite de vigência, p
 
 Os comandos de verificação do repositório são `npm run verify`, `npm run test:production`, `npm run format:check` e `npm run audit:production`. A conferência pelo navegador utiliza dados fictícios em armazenamento de desenvolvimento.
 
-As evidências e os eventos têm limite de 40 mil registros no snapshot desta versão. Tarefas compartilham o limite existente de 20 mil e os planos suportam até 120 competências mensais. Esses limites são verificados e exigem paginação de leitura antes de ampliação. A aplicação gera toda a vigência confirmada em uma transação, com uma tarefa por regra e competência.
+As evidências e os eventos têm limite de 40 mil registros no snapshot desta versão. Tarefas compartilham o limite existente de 20 mil e os planos suportam até 120 competências mensais. Esses limites são verificados e exigem paginação de leitura antes de ampliação. A aplicação gera toda a vigência confirmada em uma transação, com uma tarefa por regra e competência. O limite existente para importar um backup é de 5 MB; confira o tamanho antes de utilizá-lo para restauração.
 
 ## Retorno de versão
 
@@ -80,7 +80,7 @@ Registre a execução do roteiro no ambiente de homologação, incluindo persist
 
 ## Resultado da verificação desta revisão
 
-- A suíte executou 127 testes e concluiu com aprovação integral, incluindo o teste de PostgreSQL 17 e o cenário de contratante de parceria.
+- A suíte executou 128 testes e concluiu com aprovação integral, incluindo o teste de PostgreSQL 17 e o cenário de contratante de parceria.
 - Build, TypeScript, testes de rotas em produção local e formatação passaram. A auditoria de dependências de produção retornou zero vulnerabilidades.
 - No navegador de desenvolvimento, um projeto existente recebeu o plano, a primeira entrega foi validada com evidência e a implantação passou para 5%. Foram geradas seis competências com duas publicações cada. A recarga preservou os registros.
 - A fila em largura de celular exibiu conteúdo de 375 pixels e largura de documento de 375 pixels. O formulário de entrega teve conteúdo e rolagem interna de 326 pixels, e a ficha do plano apresentou 374 pixels em ambas as medidas. Foi registrada uma espera pelo cliente pelo formulário móvel.

@@ -329,10 +329,6 @@ export function applyDeliveryCommand(
         "Revise os critérios duplicados da recorrência.",
       );
     const periods = contractPeriods(plan.startsOn, plan.endsOn);
-    deliveryAssert(
-      periods.length * command.rules.length <= 2000,
-      "Divida a programação para respeitar o limite de tarefas da Central.",
-    );
     let created = 0;
     for (const period of periods)
       for (const rule of command.rules) {

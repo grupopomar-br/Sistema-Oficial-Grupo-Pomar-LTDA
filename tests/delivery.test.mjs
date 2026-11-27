@@ -203,3 +203,28 @@ test("plano de parceria aceita o contratante cadastrado e preserva o cliente ate
   assert.equal(result.projects[0].clientId, workspace.projects[0].clientId);
   assert.equal(result.clients.length, workspace.clients.length);
 });
+
+test("programação aceita as 120 competências e 20 regras suportadas sem limite intermediário", () => {
+  const example = deliveryExample();
+  example.send({ ...example.create, endsOn: "2036-01-30" });
+  const rules = Array.from({ length: 20 }, (_, index) => ({
+    key: crypto.randomUUID(),
+    title: "Obrigação contratada " + (index + 1),
+    targetQuantity: 1,
+    criteria: ["Entrega conferida conforme o escopo."],
+    dueOffset: null,
+  }));
+  const plan = example.state.deliveryPlans[0];
+  example.send({
+    type: "scheduleDeliveryRecurrence",
+    planId: plan.id,
+    expectedVersion: plan.version,
+    rules,
+  });
+  assert.equal(
+    example.state.deliveryItems.filter((item) => item.phase === "recurring")
+      .length,
+    2400,
+  );
+  assert.equal(recurrencePeriods(example.state, plan.id).length, 120);
+});
